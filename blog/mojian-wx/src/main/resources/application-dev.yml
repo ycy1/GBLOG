@@ -1,0 +1,19 @@
+
+#==============================公众号配置==============================
+wx:
+  mp:
+    useRedis: true
+    redisConfig:
+      host: 127.0.0.1
+      port: 6379
+      password:
+      timeout: 2000
+    configs:
+      - appId: wx5fb2e98b5acafd27 # 第一个公众号的appid
+        secret: 9c5d283c21fcc2b02c5260b371641c5e # 公众号的appsecret
+        token: WnbVm6GTQj4BPmLliSday4K # 接口配置里的Token值
+        aesKey: UjBF0GHnIfsoBCCW5UuHBI8jALVX9kfb9KyEyZE0TUx # 接口配置里的EncodingAESKey值
+      - appId: wx5dd60c0ef238bb2e # 第二个公众号的appid，以下同上
+        secret: 3d632689e04d4ed3f554591ff402994b
+        token: WnbVm6GTQj4BPmLliSday4K
+        aesKey: UjBF0GHnIfsoBCCW5UuHBI8jALVX9kfb9KyEyZE0TUx
