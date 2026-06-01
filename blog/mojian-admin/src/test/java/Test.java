@@ -1,8 +1,30 @@
-import java.awt.*;
+import cn.dev33.satoken.dao.SaTokenDaoRedisJackson;
+import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.github.lianjiatech.retrofit.spring.boot.core.RetrofitScan;
+import com.mojian.common.Result;
+import com.mojian.client.HttpApi;
+import com.mojian.vo.article.ArticleListVo;
+import com.mojian.vo.article.CategoryListVo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.List;
 
 /**
  * @author xxj
@@ -10,6 +32,19 @@ import java.io.InputStreamReader;
  * @date 2025/7/12 20:07
  * @description TODO
  */
+@SpringBootApplication(scanBasePackages = {"com.mojian.client"},
+        exclude = {
+                DataSourceAutoConfiguration.class,
+                MybatisPlusAutoConfiguration.class,
+                RedisAutoConfiguration.class,
+                org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration.class,
+                SaTokenDaoRedisJackson.class
+        })
+@ComponentScan(
+        basePackages = {"com.mojian.client"}
+)
+@RetrofitScan("com.mojian.client") // 扫描该包下的 @RetrofitClient 接口
+@SpringBootTest(classes = Test.class)
 public class Test {
 
     public static void main(String[] args) {
@@ -50,6 +85,31 @@ public class Test {
 
     }
 
+
+    @Configuration
+    static class TestConfig {
+        @Bean
+        public ObjectMapper objectMapper() {
+            return Jackson2ObjectMapperBuilder.json()
+                    .modules(new JavaTimeModule())
+                    .build();
+        }
+    }
+
+    @Autowired
+    private HttpApi httpApi;
+
+    @org.junit.jupiter.api.Test
+    public void test() {
+        System.out.println("hello world");
+        Result<Page<ArticleListVo>> article = httpApi.getArticle(1,5);
+
+        System.out.println(article.getData().getRecords().size());
+        System.out.println(article.getData().getRecords());
+
+//        Result<List<CategoryListVo>> categories = httpApi.getCategories();
+//        System.out.println(categories);
+    }
 
 
 

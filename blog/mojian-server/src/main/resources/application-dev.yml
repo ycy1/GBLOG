@@ -129,3 +129,9 @@ dromara:
           server-addr: 182.92.85.80:22122 # Tracker Server 地址（IP:PORT），多个用英文逗号隔开
         domain: http://182.92.85.80/ # 访问域名，注意“/”结尾，例如：https://file.abc.com/
         base-path: "" # 基础路径，强烈建议留空，详情查看兼容性说明章节
+
+retrofit:
+  log:
+    enable: true
+  # 让 Retrofit 使用 Spring 容器中的 ObjectMapper
+  global-object-mapper: true

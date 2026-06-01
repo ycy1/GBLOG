@@ -134,7 +134,8 @@
         </el-form-item>
 
         <el-form-item label="文章简介" prop="summary">
-          <el-input v-model="form.summary" type="textarea" :rows="3" placeholder="请输入文章简介" />
+          <el-button @click="generateSummary" style="margin-bottom: 10px" type="primary" :loading="summaryLoading">生成简介</el-button>
+          <el-input v-model="form.summary" type="textarea" :rows="5" placeholder="请输入文章简介" />
         </el-form-item>
 
         <el-row :gutter="20" class="mb-20">
@@ -366,6 +367,7 @@
 </template>
 
 <script setup lang="ts">
+import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { ElMessage, ElMessageBox,ElLoading  } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import UploadImage from '@/components/Upload/Image.vue'
@@ -394,6 +396,7 @@ const queryParams = reactive({
 })
 
 const loading = ref(false)
+const summaryLoading = ref(false)
 const total = ref(0)
 const tableData = ref([])
 const queryFormRef = ref<FormInstance>()
@@ -466,7 +469,7 @@ const rules = reactive<FormRules>({
   ],
   summary: [
     { required: true, message: '请输入文章简介', trigger: 'blur' },
-    { max: 500, message: '简介最多500个字符', trigger: 'blur' }
+    { max: 1000, message: '简介最多1000个字符', trigger: 'blur' }
   ],
   readType: [
     { required: true, message: '请选择阅读方式', trigger: 'change' }
@@ -529,6 +532,29 @@ const saveCategory = () => {
     addCategory(categoryName.value);
     categoryName.value = "";
   }
+}
+
+/**
+ * 生成文章简介
+ */
+import { useSSE } from '@/utils/useSSE';
+const { aiData, isStreaming, start, stop } = useSSE();
+const aiUrl = import.meta.env.VITE_APP_API_URL_AI
+
+const generateSummary = async () => {
+  summaryLoading.value = true
+  form.summary = ''
+  try {
+    console.log(aiUrl)
+    await start(aiUrl, {
+      body: { prompt: form.contentMd }
+    }, (data: string) => {
+      form.summary += data;
+    });
+  } catch (error) {
+    stop()
+  }
+  summaryLoading.value = false
 }
 
 

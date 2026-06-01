@@ -4,12 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --open", 
+    "dev": "vite --open",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.1.0",
+    "@microsoft/fetch-event-source": "^2.0.1",
     "@types/js-cookie": "^3.0.6",
     "@wangeditor/editor": "^5.1.23",
     "@wangeditor/editor-for-vue": "^5.1.12",

@@ -50,5 +50,11 @@
             <version>${package.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.mojian</groupId>
+            <artifactId>mojian-ai</artifactId>
+            <version>${package.version}</version>
+        </dependency>
+
     </dependencies>
 </project>

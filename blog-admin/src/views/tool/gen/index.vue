@@ -364,18 +364,21 @@ const handleGenCode = async () => {
     ElMessage.warning("请选择要生成的表");
     return;
   }
-  // try {
-  //   const tableNames = tableList.value
-  //     .filter((item: any) => ids.value.includes(item.tableId))
-  //     .map((item: any) => item.tableName)
-  //     .join(",");
-  //   const response = await downloadCodeApi(tableNames);
-  //   const blob = new Blob([response.data], {
-  //         type: "application/zip",
-  //   });
-  //   saveAs(blob, "code.zip");
-  //   ElMessage.success("生成成功");
-  // } catch (error) {}
+  try {
+    const tableNames = tableList.value
+      .filter((item: any) => ids.value.includes(item.tableId))
+      .map((item: any) => item.tableName)
+      .join(",");
+    const response = await downloadCodeApi(tableNames);
+    const blob = new Blob([response as any], {
+          type: "application/zip",
+    });
+
+    saveAs(blob, "code.zip");
+
+    ElMessage.success("生成成功");
+  } catch (error) {
+  }
 };
 
 const handleSynchDb = async (row: any) => {

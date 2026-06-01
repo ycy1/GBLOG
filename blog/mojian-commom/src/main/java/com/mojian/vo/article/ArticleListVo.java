@@ -1,6 +1,8 @@
 package com.mojian.vo.article;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.mojian.utils.DateUtil;
 import com.mojian.vo.tag.TagListVo;
 import io.swagger.annotations.ApiModel;
@@ -73,6 +75,7 @@ public class ArticleListVo {
 
     @ApiModelProperty(value = "创建时间")
     @JsonFormat(pattern = DateUtil.YYYY_MM_DD_HH_MM_SS)
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     private LocalDateTime createTime;
 
 

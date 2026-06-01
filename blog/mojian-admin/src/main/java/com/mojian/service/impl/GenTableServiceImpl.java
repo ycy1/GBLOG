@@ -87,7 +87,7 @@ public class GenTableServiceImpl implements GenTableService {
             // 查询表信息
             GenTable genTable = new GenTable();
             genTable.setTableName(tableName);
-            List<GenTable> tableList = genTableMapper.selectDbTableList(genTable);
+            List<GenTable> tableList = genTableMapper.selectDbTableList2(genTable);
             if (tableList.isEmpty()) {
                 throw new ServiceException("同步数据失败，原表结构不存在");
             }
@@ -137,7 +137,10 @@ public class GenTableServiceImpl implements GenTableService {
                         .filter(c -> c.getColumnName().equals(column.getColumnName()))
                         .findFirst()
                         .orElse(null);
+
+
                 if (oldColumn != null) {
+                    initColumnField(column, table);
                     column.setColumnId(oldColumn.getColumnId());
                     column.setTableId(oldTable.getTableId());
                     // 保持已有的配置信息
@@ -290,7 +293,14 @@ public class GenTableServiceImpl implements GenTableService {
 
                 // 查询列信息
                 List<GenTableColumn> columns = genTableMapper.selectGenTableColumns(table.getTableId());
-
+                for (GenTableColumn column : columns)
+                {
+                    if (column.getIsPk() != null && "1".equals(column.getIsPk()))
+                    {
+                        table.setPkColumn(column);
+                        break;
+                    }
+                }
                 // 生成代码
                 VelocityInitializer.initVelocity();
                 VelocityContext context = VelocityUtil.prepareContext(table, columns);

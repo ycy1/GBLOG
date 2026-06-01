@@ -48,6 +48,34 @@
             <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
+
+        <!-- 只保留 Spring Boot 测试 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+            <!-- 排除老旧的JUnit4，只保留JUnit5（Jupiter） -->
+            <exclusions>
+                <exclusion>
+                    <groupId>junit</groupId>
+                    <artifactId>junit</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.lianjiatech</groupId>
+            <artifactId>retrofit-spring-boot-starter</artifactId>
+            <!-- 请注意版本选择：Spring Boot 2.x 使用 2.x 版本；Spring Boot 3.x / 4.x 使用 4.x 版本 -->
+            <version>4.0.2</version>
+        </dependency>
+
     </dependencies>
 
     <build>

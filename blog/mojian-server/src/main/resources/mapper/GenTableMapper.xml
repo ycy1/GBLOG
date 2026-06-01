@@ -20,6 +20,23 @@
         from information_schema.tables
         where table_schema = (select database())
         AND table_name NOT LIKE 'gen_%'
+        AND table_name NOT IN (
+            select table_name from gen_table where table_name is not null
+        )
+        <if test="tableName != null and tableName != ''">
+            AND lower(table_name) like concat('%', lower(#{tableName}), '%')
+        </if>
+        order by create_time desc
+        <if test="offset != null">
+            limit #{offset}, #{pageSize}
+        </if>
+    </select>
+	
+	<select id="selectDbTableList2" parameterType="com.mojian.entity.GenTable" resultType="com.mojian.entity.GenTable">
+        select table_name, table_comment, create_time, update_time
+        from information_schema.tables
+        where table_schema = (select database())
+        AND table_name NOT LIKE 'gen_%'
         AND table_name IN (
             select table_name from gen_table where table_name is not null
         )

@@ -18,6 +18,7 @@
         <module>mojian-quartz</module>
         <module>mojian-auth</module>
         <module>mojian-wx</module>
+        <module>mojian-ai</module>
     </modules>
 
     <parent>
@@ -27,7 +28,7 @@
     </parent>
 
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>17</java.version>
         <mybatis-plus.version>3.5.2</mybatis-plus.version>
         <sa-token.version>1.39.0</sa-token.version>
         <package.version>1.0-SNAPSHOT</package.version>

@@ -23,6 +23,8 @@ public interface GenTableMapper {
     void insertGenTableColumn(GenTableColumn column);
     
     List<GenTable> selectDbTableList(GenTable genTable);
+	
+	List<GenTable> selectDbTableList2(GenTable genTable);
     
     int insertGenTableBatch(List<GenTableColumn> columns);
     
