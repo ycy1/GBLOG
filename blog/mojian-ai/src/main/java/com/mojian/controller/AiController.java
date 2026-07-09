@@ -46,12 +46,16 @@ public class AiController {
     @Qualifier("openAiStreamingChatModel")
     private OpenAiStreamingChatModel modelscopeStream;
 
+    @Autowired
+    @Qualifier("streamingDeepseekModel")
+    private OpenAiStreamingChatModel streamingDeepseekModel;
+
     @CrossOrigin
     @PostMapping(value = "/chat", produces = "text/event-stream;charset=UTF-8")
     public ResponseEntity<Flux<String>> chat(@RequestBody Map<String, String> prompt) {
         log.info("进入流式响应 ----> start");
 
-        Assistant assistant1 = AiServices.create(Assistant.class, modelscopeStream);
+        Assistant assistant1 = AiServices.create(Assistant.class, streamingDeepseekModel);
         SystemMessage sysMessage = SystemMessage.from("你是一个文章简化提取助手");
         UserMessage prompt1 = UserMessage.from("请将下面这段内容进行不超过500字的总结，并返回总结结果\n\n" + prompt.get("prompt"));
         String s = sysMessage.text() + "\n" + prompt1.singleText();

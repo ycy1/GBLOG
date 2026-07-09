@@ -53,20 +53,24 @@
           <el-table-column label="创建时间" align="center" prop="createTime" width="180" />
           <el-table-column label="操作" align="center" width="280" fixed="right">
             <template #default="scope">
-              <el-button
-                v-permission="['sys:category:update']"
-                type="primary"
-                link
-                icon="Edit"
-                @click="handleUpdate(scope.row)"
-              >修改</el-button>
-              <el-button
-                v-permission="['sys:category:delete']"
-                type="danger"
-                link
-                icon="Delete"
-                @click="handleDelete(scope.row)"
-              >删除</el-button>
+              <TableMoreActions
+                :actions="[
+                  {
+                    label: '修改',
+                    icon: 'Edit',
+                    disabled: !hasPermission('sys:category:update'),
+                    command: { type: 'edit', row: scope.row }
+                  },
+                  {
+                    label: '删除',
+                    type: 'danger',
+                    icon: 'Delete',
+                    disabled: !hasPermission('sys:category:delete'),
+                    command: { type: 'delete', row: scope.row }
+                  }
+                ]"
+                @command="handleActionCommand"
+              />
             </template>
           </el-table-column>
         </el-table>
@@ -138,6 +142,31 @@
     updateCategoryApi,
     deleteCategoryApi
   } from '@/api/article/category'
+  import TableMoreActions from '@/components/TableMoreActions/index.vue'
+  import { useUserStore } from '@/store/modules/user'
+
+  // 获取用户权限信息
+  const userStore = useUserStore()
+  const permissions = computed(() => userStore.user.permissions || [])
+
+  // 权限检查函数
+  const hasPermission = (permission: string): boolean => {
+    return permissions.value.includes(permission)
+  }
+
+  // 处理操作命令
+  const handleActionCommand = async (action: any) => {
+    const { type, row } = action.command
+
+    switch (type) {
+      case 'edit':
+        handleUpdate(row)
+        break
+      case 'delete':
+        handleDelete(row)
+        break
+    }
+  }
 
   
   // 查询参数
@@ -309,9 +338,16 @@
     queryParams.pageNum = val
     getList()
   }
-  
+
   // 初始化
   onMounted(() => {
+    // 获取用户权限信息
+    userStore.getUserInfo().then(() => {
+      console.log('[onMounted] permissions loaded:', permissions.value)
+    }).catch(err => {
+      console.error('[onMounted] failed to load permissions:', err)
+    })
+
     getList()
   })
   </script>

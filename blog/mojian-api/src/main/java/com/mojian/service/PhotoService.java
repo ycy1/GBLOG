@@ -17,6 +17,11 @@ public interface PhotoService {
     IPage<SysPhoto> selectPage(SysPhoto sysPhoto);
 
     /**
+     * 查询照片分页列表
+     */
+    List<SysPhoto> selectAll(SysPhoto sysPhoto);
+
+    /**
      * 批量删除照片
      */
     boolean deleteByIds(List<Long> ids);

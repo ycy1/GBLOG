@@ -1,12 +1,10 @@
 package com.mojian.service;
 
-import com.mojian.dto.feedback.SysFeedbackQueryDto;
+import com.mojian.dto.message.SysFeedbackQueryDto;
 import com.mojian.entity.SysFeedback;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.mojian.vo.feedback.SysFeedbackVo;
-
-import java.util.List;
 
 /**
  * 反馈表 服务接口

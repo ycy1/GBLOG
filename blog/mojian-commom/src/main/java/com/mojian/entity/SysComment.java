@@ -52,10 +52,14 @@ public class SysComment implements Serializable {
     private String browser;
 
     @ApiModelProperty(value = "系统")
-    private String system;
+    private String systemOs;
 
     @ApiModelProperty(value = "创建时间")
     @TableField(fill = FieldFill.INSERT)
     @JsonFormat(pattern = DateUtil.YYYY_MM_DD_HH_MM_SS)
     private LocalDateTime createTime;
+
+    @ApiModelProperty(value = "更新时间")
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;
 }

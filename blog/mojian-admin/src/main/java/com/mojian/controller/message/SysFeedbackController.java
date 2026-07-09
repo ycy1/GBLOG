@@ -3,7 +3,7 @@ package com.mojian.controller.message;
 import java.util.List;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
-import com.mojian.dto.feedback.SysFeedbackQueryDto;
+import com.mojian.dto.message.SysFeedbackQueryDto;
 import com.mojian.vo.feedback.SysFeedbackVo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

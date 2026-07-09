@@ -1,4 +1,4 @@
-package com.mojian.vo.comment;
+package com.mojian.dto.message;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.mojian.utils.DateUtil;
@@ -7,7 +7,6 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * @author: quequnlong
@@ -16,13 +15,10 @@ import java.util.List;
  */
 @Data
 @ApiModel(value = "评论信息")
-public class SysCommentVO {
+public class SysCommentQueryDto {
 
-    @ApiModelProperty(value = "主键ID")
-    private Integer id;
-
-    @ApiModelProperty(value = "用户头像")
-    private String avatar;
+    @ApiModelProperty(value = "关联的文章ID，表明该评论所属的文章")
+    private Long articleId;
 
     @ApiModelProperty(value = "用户昵称")
     private String nickname;
@@ -36,22 +32,7 @@ public class SysCommentVO {
     @ApiModelProperty(value = "评论内容")
     private String content;
 
-    @ApiModelProperty(value = "父评论ID")
-    private Integer parentId;
-
-    @ApiModelProperty(value = "回复用户 ID")
-    private Long replyUserId;
-
-    @ApiModelProperty(value = "是否置顶")
-    private Integer isStick;
-
-    @ApiModelProperty(value = "点赞数")
-    private Integer likeCount;
-
-    @ApiModelProperty(value = "子评论列表")
-    private List<SysCommentVO> children;
-
     @ApiModelProperty(value = "评论时间")
-    @JsonFormat(pattern = DateUtil.YYYY_MM_DD,timezone="GMT+8")
+    @JsonFormat(pattern = DateUtil.YYYY_MM_DD_HH_MM_SS,timezone="GMT+8")
     private LocalDateTime createTime;
 }

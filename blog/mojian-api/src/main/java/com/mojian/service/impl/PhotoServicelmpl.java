@@ -32,6 +32,11 @@ public class PhotoServicelmpl implements PhotoService {
     }
 
     @Override
+    public List<SysPhoto> selectAll(SysPhoto sysPhoto) {
+        return sysPhotoMapper.selectList(new LambdaQueryWrapper<>(sysPhoto));
+    }
+
+    @Override
     public boolean deleteByIds(List<Long> ids) {
         return false;
     }

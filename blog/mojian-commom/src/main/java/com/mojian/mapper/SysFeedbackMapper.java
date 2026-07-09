@@ -2,7 +2,7 @@ package com.mojian.mapper;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.mojian.dto.feedback.SysFeedbackQueryDto;
+import com.mojian.dto.message.SysFeedbackQueryDto;
 import com.mojian.entity.SysFeedback;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.mojian.vo.feedback.SysFeedbackVo;

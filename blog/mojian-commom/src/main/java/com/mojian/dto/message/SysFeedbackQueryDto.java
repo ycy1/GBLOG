@@ -1,4 +1,4 @@
-package com.mojian.dto.feedback;
+package com.mojian.dto.message;
 
 import com.mojian.entity.SysFeedback;
 import lombok.Data;

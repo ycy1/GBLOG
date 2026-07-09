@@ -16,3 +16,12 @@ export function deleteCommentApi(ids: any) {
     method: 'delete'
   })
 }
+
+// 编辑评论
+export function editCommentApi(data: any) {
+  return request({
+    url: '/sys/comment/update',
+    method: 'put',
+    data
+  })
+}

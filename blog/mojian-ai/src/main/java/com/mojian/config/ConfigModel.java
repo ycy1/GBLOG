@@ -26,6 +26,24 @@ public class ConfigModel {
     static OpenAiChatModel modelscopeModel = null;
     static OllamaStreamingChatModel modelStream = null;
     static OpenAiStreamingChatModel modelscopeStream = null;
+    static OpenAiChatModel deepseekModel = null;
+
+    @Bean("deepseekModel")
+    public static ChatLanguageModel getDeepseekModel(){
+        log.info("get deepseekModel");
+        if (deepseekModel == null)
+            deepseekModel = OpenAiChatModel.builder()
+//                    .responseFormat("JSON")
+                    .baseUrl("https://api.deepseek.com")
+                    .apiKey("sk-f717063335e144abb14d2eaa3d8a7bdc")
+                    .modelName("deepseek-v4-flash")
+                    .maxTokens(1000)
+                    .timeout(Duration.ofSeconds(2000))
+                    .build();
+
+        return deepseekModel;
+    }
+
     @Bean("ollamaChatMode")
     public static ChatLanguageModel getOllamaChatModel(){
         log.info("get ollamaModel");
@@ -72,6 +90,19 @@ public class ConfigModel {
                 .build();
 
         return modelscopeStream;
+    }
+
+    @Bean("streamingDeepseekModel")
+    public static OpenAiStreamingChatModel getstreamingDeepseekModel(){
+        log.info("get streamingDeepseekModel");
+        return OpenAiStreamingChatModel.builder()
+                .baseUrl("https://api.deepseek.com")
+                .apiKey("sk-f717063335e144abb14d2eaa3d8a7bdc")
+                .modelName("deepseek-v4-flash")
+//                .maxTokens(1000)
+                .timeout(Duration.ofSeconds(20000))
+                .build();
+
     }
 
 

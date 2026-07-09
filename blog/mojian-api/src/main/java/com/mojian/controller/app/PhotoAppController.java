@@ -34,6 +34,12 @@ public class PhotoAppController extends BaseAppController {
         return Result.success(photoService.selectPage(sysPhoto));
     }
 
+    @GetMapping("/all")
+    @ApiOperation(value = "获取所有照片列表")
+    public Result<List<SysPhoto>> all(SysPhoto sysPhoto) {
+        return Result.success(photoService.selectAll(sysPhoto));
+    }
+
 //    @GetMapping("/{id}")
 //    @ApiOperation(value = "获取照片详情")
 //    public Result<SysPhoto> getInfo(@PathVariable("id") Long id) {

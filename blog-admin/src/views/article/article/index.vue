@@ -2,35 +2,27 @@
   <div class="app-container">
     <!-- 搜索表单 -->
     <div class="search-wrapper">
-      <el-form ref="queryFormRef" :model="queryParams" :inline="true">
-        <el-row :gutter="20">
-          <el-col :span="5">
-            <el-form-item label="标题" prop="title">
-              <el-input v-model="queryParams.title" placeholder="请输入文章标题" clearable @keyup.enter="handleQuery" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="5">
-            <el-form-item label="分类" prop="categoryId">
-              <el-select v-model="queryParams.categoryId" placeholder="请选择分类" clearable>
-          <el-option v-for="item in categoryOptions" :key="item.id" :label="item.name" :value="item.id" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="5">
-            <el-form-item label="标签" prop="tagId">
-              <el-select v-model="queryParams.tagId" placeholder="请选择标签" clearable>
-          <el-option v-for="item in tagOptions" :key="item.id" :label="item.name" :value="item.id" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="5">
-            <el-form-item label="状态" prop="status">
-              <el-select v-model="queryParams.status" placeholder="请选择状态" clearable>
-          <el-option v-for="item in statusOptions" :key="item.id" :value="item.value" :label="item.label" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="4">
+      <el-form ref="queryFormRef" :model="queryParams" inline>
+        <el-form-item label="标题" prop="title">
+          <el-input v-model="queryParams.title" placeholder="请输入文章标题" clearable @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item label="分类" prop="categoryId">
+          <el-select v-model="queryParams.categoryId" placeholder="请选择分类" clearable>
+            <el-option v-for="item in categoryOptions" :key="item.id" :label="item.name" :value="item.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="标签" prop="tagId">
+          <el-select v-model="queryParams.tagId" placeholder="请选择标签" clearable>
+            <el-option v-for="item in tagOptions" :key="item.id" :label="item.name" :value="item.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="状态" prop="status">
+          <el-select v-model="queryParams.status" placeholder="请选择状态" clearable>
+            <el-option v-for="item in statusOptions" :key="item.id" :value="item.value" :label="item.label" />
+          </el-select>
+        </el-form-item>
+        <el-row>
+          <el-col :span="6">
             <el-form-item>
               <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
               <el-button icon="Refresh" @click="resetQuery">重置</el-button>
@@ -105,10 +97,30 @@
         <el-table-column label="创建时间" align="center" prop="createTime" width="180" />
         <el-table-column label="操作" align="center" width="200" fixed="right">
           <template #default="scope">
-            <el-button type="primary" link icon="Edit" @click="handleUpdate(scope.row)"
-              v-permission="['sys:article:update']">修改</el-button>
-            <el-button type="danger" link icon="Delete" @click="handleDelete(scope.row)"
-              v-permission="['sys:article:delete']">删除</el-button>
+            <TableMoreActions
+              :actions="[
+                {
+                  label: '编辑',
+                  icon: 'Edit',
+                  disabled: !hasPermission('sys:article:update'),
+                  command: { type: 'edit', row: scope.row }
+                },
+                {
+                  label: '删除',
+                  type: 'danger',
+                  icon: 'Delete',
+                  disabled: !hasPermission('sys:article:delete'),
+                  command: { type: 'delete', row: scope.row }
+                },
+                {
+                  label: '评论',
+                  icon: 'Comment',
+                  disabled: !hasPermission('sys:article:update'),
+                  command: { type: 'comment', row: scope.row }
+                }
+              ]"
+              @command="handleActionCommand"
+            />
           </template>
         </el-table-column>
       </el-table>
@@ -134,47 +146,29 @@
         </el-form-item>
 
         <el-form-item label="文章简介" prop="summary">
-          <el-button @click="generateSummary" style="margin-bottom: 10px" type="primary" :loading="summaryLoading">生成简介</el-button>
+          <el-button @click="generateSummary" style="margin-bottom: 10px" type="primary"
+            :loading="summaryLoading">生成简介</el-button>
           <el-input v-model="form.summary" type="textarea" :rows="5" placeholder="请输入文章简介" />
         </el-form-item>
 
         <el-row :gutter="20" class="mb-20">
           <el-col :span="12">
             <el-form-item label="分类" prop="categoryName">
-              <el-tag
-                type="success"
-                v-show="form.categoryName"
-                style="margin: 0 1rem 0 0"
-                :closable="true"
-                @close="removeCategory()"
-              >
+              <el-tag type="success" v-show="form.categoryName" style="margin: 0 1rem 0 0" :closable="true"
+                @close="removeCategory()">
                 {{ form.categoryName }}
               </el-tag>
               <!-- 分类选项 -->
-              <el-popover
-                placement="bottom-start"
-                width="460"
-                trigger="click"
-                v-if="!form.categoryName"
-              >
+              <el-popover placement="bottom-start" width="460" trigger="click" v-if="!form.categoryName">
                 <div class="popover-title">分类</div>
                 <!-- 输入框 -->
-                <el-input
-                  style="width: 100%"
-                  v-model="categoryName"
-                  placeholder="请输入分类名,enter添加自定义分类"
-                  @keyup.enter="saveCategory"
-                />
+                <el-input style="width: 100%" v-model="categoryName" placeholder="请输入分类名,enter添加自定义分类"
+                  @keyup.enter="saveCategory" />
                 <!-- 分类 -->
                 <div class="popover-container">
                   <div>添加分类</div>
-                  <el-tag
-                    v-for="(item, index) of categoryOptions"
-                    :key="index"
-                    style="margin-left: 3px; margin-top: 2px"
-                    class="category-item"
-                    @click="addCategory(item.name)"
-                  >
+                  <el-tag v-for="(item, index) of categoryOptions" :key="index"
+                    style="margin-left: 3px; margin-top: 2px" class="category-item" @click="addCategory(item.name)">
                     {{ item.name }}
                   </el-tag>
                 </div>
@@ -187,39 +181,21 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="标签" prop="tags">
-              <el-tag
-                v-for="(item, index) of form.tags"
-                :key="index"
-                style="margin: 0 1rem 0 0"
-                :closable="true"
-                @close="removeTag(item)"
-              >
+              <el-tag v-for="(item, index) of form.tags" :key="index" style="margin: 0 1rem 0 0" :closable="true"
+                @close="removeTag(item)">
                 {{ item }}
               </el-tag>
               <!-- 标签选项 -->
-              <el-popover
-                placement="bottom-start"
-                width="460"
-                trigger="click"
-                v-if="form.tags && form.tags.length < 3"
-              >
+              <el-popover placement="bottom-start" width="460" trigger="click" v-if="form.tags && form.tags.length < 3">
                 <div class="popover-title">标签</div>
                 <!-- 搜索框 -->
-                <el-input
-                  style="width: 100%"
-                  v-model="tagName"
-                  placeholder="请输入标签名,enter添加自定义标签"
-                  @keyup.enter="saveTag"
-                />
+                <el-input style="width: 100%" v-model="tagName" placeholder="请输入标签名,enter添加自定义标签"
+                  @keyup.enter="saveTag" />
                 <!-- 标签 -->
                 <div class="popover-container">
                   <div>添加标签</div>
-                  <el-tag
-                    v-for="(item, index) of tagOptions"
-                    :key="index"
-                    style="margin-left: 3px; margin-top: 2px"
-                    @click="addTag(item.name)"
-                  >
+                  <el-tag v-for="(item, index) of tagOptions" :key="index" style="margin-left: 3px; margin-top: 2px"
+                    @click="addTag(item.name)">
                     {{ item.name }}
                   </el-tag>
                 </div>
@@ -293,35 +269,29 @@
           <mavon-editor placeholder="输入文章内容..." style="height: 500px; width: 100%" ref="mdRef" v-model="form.contentMd"
             @imgDel="imgDel" @imgAdd="imgAdd">
             <template #left-toolbar-after>
-                  <el-dropdown>
-                    <span class="el-dropdown-link">
-                      <i title="上传视频"></i>
-                      <el-icon class="op-icon fa el-icon-video-camera"
-                        ><VideoPlay
-                      /></el-icon>
-                    </span>
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item>
-                          <el-upload
-                            style="display: inline-block"
-                            :show-file-list="false"
-                            name="filedatas"
-                            action=""
-                            :http-request="uploadVideo"
-                            multiple
-                          >
-                            <span>上传视频</span>
-                          </el-upload>
-                        </el-dropdown-item>
-                        <el-dropdown-item>
-                          <div @click="dialogVisible = true">添加视频地址</div>
-                        </el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
+              <el-dropdown>
+                <span class="el-dropdown-link">
+                  <i title="上传视频"></i>
+                  <el-icon class="op-icon fa el-icon-video-camera">
+                    <VideoPlay />
+                  </el-icon>
+                </span>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item>
+                      <el-upload style="display: inline-block" :show-file-list="false" name="filedatas" action=""
+                        :http-request="uploadVideo" multiple>
+                        <span>上传视频</span>
+                      </el-upload>
+                    </el-dropdown-item>
+                    <el-dropdown-item>
+                      <div @click="dialogVisible = true">添加视频地址</div>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
                 </template>
-              </mavon-editor>
+              </el-dropdown>
+            </template>
+          </mavon-editor>
         </el-form-item>
       </el-form>
 
@@ -368,17 +338,49 @@
 
 <script setup lang="ts">
 import { fetchEventSource } from '@microsoft/fetch-event-source';
-import { ElMessage, ElMessageBox,ElLoading  } from 'element-plus'
+import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import UploadImage from '@/components/Upload/Image.vue'
+import TableMoreActions from '@/components/TableMoreActions/index.vue'
 import { getCategoryListApi } from '@/api/article/category'
 import { getTagListApi } from '@/api/article/tag'
 import {
   getArticleListApi, getDetailApi, deleteArticleApi,
   addArticleApi, updateArticleApi, updateStatusApi, reptileArticleApi
 } from '@/api/article'
-import { uploadApi,deleteFileApi,uploadImageApi } from '@/api/file'
+import { uploadApi, deleteFileApi, uploadImageApi } from '@/api/file'
 import { getDictDataByDictTypesApi } from '@/api/system/dict'
+import { useUserStore } from '@/store/modules/user'
+import { useRouter } from 'vue-router'
+
+// 获取用户权限信息
+const userStore = useUserStore()
+const permissions = computed(() => userStore.user.permissions || [])
+
+// 路由实例
+const router = useRouter()
+
+// 权限检查函数
+const hasPermission = (permission: string): boolean => {
+  return permissions.value.includes(permission)
+}
+
+// 处理操作命令
+const handleActionCommand = async (action: any) => {
+  const { type, row } = action.command
+
+  switch (type) {
+    case 'edit':
+      handleUpdate(row)
+      break
+    case 'delete':
+      handleDelete(row)
+      break
+    case 'comment':
+      handleComment(row)
+      break
+  }
+}
 
 // 模拟数据
 const categoryOptions = ref<any>([])
@@ -561,9 +563,9 @@ const generateSummary = async () => {
 
 //删除图片
 function imgDel(pos: any, $file: any) {
-   deleteFileApi(pos[0]).then((res) => {
-     ElMessage.success('删除成功')
-   })
+  deleteFileApi(pos[0]).then((res) => {
+    ElMessage.success('删除成功')
+  })
 }
 //添加图片
 function imgAdd(pos: any, $file: any) {
@@ -599,7 +601,7 @@ const uploadVideo = (param: any) => {
 /**
  * 添加网络视频地址
  */
- const addVideo = () => {
+const addVideo = () => {
   // 这里获取到的是mavon编辑器实例，上面挂载着很多方法
   const $vm = mdRef.value;
   // 将文件名与文件路径插入当前光标位置，这是mavon-editor 内置的方法
@@ -681,6 +683,11 @@ const handleDelete = (row: any) => {
     } catch (error) {
     }
   })
+}
+
+// 查看评论
+const handleComment = (row: any) => {
+  router.push({ path: '/message/comment', query: { articleId: row.id, articleTitle: row.title } })
 }
 
 // 发布文章
@@ -788,6 +795,7 @@ const handleCurrentChange = (val: number) => {
 
 // 初始化
 onMounted(() => {
+
   getList()
   getCategoryListApi({ pageNum: 1, pageSize: 1000 }).then((res) => {
     categoryOptions.value = res.data.records
@@ -822,7 +830,6 @@ const beforeAvatarUpload = (file: File) => {
 </script>
 
 <style lang="scss" scoped>
-
 .avatar-uploader {
   :deep(.el-upload) {
     border: 2px dashed var(--el-border-color-lighter);
