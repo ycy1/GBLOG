@@ -2,17 +2,22 @@
 import { ref } from 'vue';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { getToken } from '@/utils/auth'
+import { renderStreamingMarkdown,renderMarkdown } from '@/utils/markdown'
 
 export function useSSE() {
-  const data = ref('');        // 存储流式数据
-  const isStreaming = ref(false); // 连接状态
-  let abortController: AbortController | null = null;  // 用于主动断开连接
+  const data = ref('');              // 原始流式数据
+  const rendered = ref('');          // Markdown 渲染后的 HTML
+  const isStreaming = ref(false);    // 连接状态
+  let abortController: AbortController | null = null;
+  let retryCount = 0;
+  const MAX_RETRIES = 5;
 
   const start = async (url: string, options: any, onData: (data: string) => void) => {
-    // 核心：每次请求必须新建 AbortController，因为它是“一次性”的 [citation:4]
     abortController = new AbortController();
     isStreaming.value = true;
-    data.value = ''; // 清空上次数据
+    data.value = '';
+    rendered.value = '';
+    retryCount = 0;
     const token = getToken()
     try {
       await fetchEventSource(url, {
@@ -23,21 +28,27 @@ export function useSSE() {
         },
         body: JSON.stringify(options.body),
         signal: abortController.signal,
-        openWhenHidden: true, // 解决页面切后台时的重复请求问题 [citation:1]
+        openWhenHidden: true,
 
         onmessage(event) {
-          // 累积数据，实现打字机效果 [citation:5]
-          // console.log(event.data);
+          retryCount = 0;  // 收到消息时重置重试计数
           onData(event.data);
-          data.value += event.data;
-          
+          if (event.data === '') {
+            data.value += '\\n'
+          }else{
+            data.value += event.data;
+          }
         },
 
         onerror(err) {
-          console.error('SSE错误', err);
-          isStreaming.value = false;
-          abortController?.abort(); // 出错时断开
-          throw err; // 抛出错误，让调用者处理
+          retryCount++;
+          console.error(`SSE错误 (${retryCount}/${MAX_RETRIES})`, err);
+          if (retryCount >= MAX_RETRIES) {
+            isStreaming.value = false;
+            abortController?.abort();
+            return;  // 不抛出异常，停止重试
+          }
+          return;  // 允许重试
         },
 
         onclose() {
@@ -56,10 +67,10 @@ export function useSSE() {
 
   const stop = () => {
     if (abortController) {
-      abortController.abort(); // 主动关闭连接 
+      abortController.abort();
       isStreaming.value = false;
     }
   };
 
-  return { aiData:data, isStreaming, start, stop };
+  return { aiData: data, rendered, isStreaming, start, stop };
 }
