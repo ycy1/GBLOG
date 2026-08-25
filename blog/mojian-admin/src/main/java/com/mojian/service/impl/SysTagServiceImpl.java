@@ -29,7 +29,8 @@ public class SysTagServiceImpl extends ServiceImpl<SysTagMapper, SysTag> impleme
     @Override
     public IPage<SysTag> selectPage(SysTag sysTag) {
         LambdaQueryWrapper<SysTag> wrapper = new LambdaQueryWrapper<SysTag>()
-                .like(StringUtils.isNotBlank(sysTag.getName()), SysTag::getName, sysTag.getName());
+                .like(StringUtils.isNotBlank(sysTag.getName()), SysTag::getName, sysTag.getName())
+                .eq(StringUtils.isNotBlank(sysTag.getType()), SysTag::getType, sysTag.getType());
         return page(PageUtil.getPage(), wrapper);
     }
 
@@ -46,8 +47,12 @@ public class SysTagServiceImpl extends ServiceImpl<SysTagMapper, SysTag> impleme
      */
     @Override
     public boolean insert(SysTag sysTag) {
+        if (StringUtils.isBlank(sysTag.getType())) {
+            sysTag.setType("article");
+        }
         Long count = baseMapper.selectCount(new LambdaQueryWrapper<SysTag>()
-                .eq(SysTag::getName, sysTag.getName()));
+                .eq(SysTag::getName, sysTag.getName())
+                .eq(SysTag::getType, sysTag.getType()));
         if (count > 0) {
             throw new ServiceException(ResultCode.TAG_IS_EXIST.desc);
         }
@@ -59,7 +64,12 @@ public class SysTagServiceImpl extends ServiceImpl<SysTagMapper, SysTag> impleme
      */
     @Override
     public boolean update(SysTag sysTag) {
-        SysTag sysTag1 = baseMapper.selectOne(new LambdaQueryWrapper<SysTag>().eq(SysTag::getName, sysTag.getName()));
+        if (StringUtils.isBlank(sysTag.getType())) {
+            sysTag.setType("article");
+        }
+        SysTag sysTag1 = baseMapper.selectOne(new LambdaQueryWrapper<SysTag>()
+                .eq(SysTag::getName, sysTag.getName())
+                .eq(SysTag::getType, sysTag.getType()));
         if (sysTag1 != null && !sysTag1.getId().equals(sysTag.getId())) {
             throw new ServiceException(ResultCode.TAG_IS_EXIST.desc);
         }

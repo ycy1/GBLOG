@@ -18,10 +18,11 @@ import java.util.List;
 @Mapper
 public interface SysCommentMapper extends BaseMapper<SysComment> {
 
-    IPage<CommentListVo> getComments(@Param("page") Page<Object> page, @Param("articleId") Integer articleId,
-                                     @Param("sortType") String sortType);
+    IPage<CommentListVo> getComments(@Param("page") Page<Object> page, @Param("businessId") Integer businessId,
+                                     @Param("sortType") String sortType, @Param("userId") Long userId,
+                                     @Param("commentType") Integer commentType);
 
-    List<CommentListVo> getChildrenComment(Integer id);
+    List<CommentListVo> getChildrenComment(@Param("id") Integer id, @Param("userId") Long userId);
 
     Page<SysCommentVO> selectPage(@Param("page") Page<SysCommentVO> page, @Param("query") SysCommentQueryDto query);
 
@@ -29,4 +30,11 @@ public interface SysCommentMapper extends BaseMapper<SysComment> {
 
     IPage<CommentListVo> getMyReply(@Param("page") Page<Object> page,@Param("userId")  long userId);
 
+    void likeComment(@Param("commentId") Integer commentId, @Param("userId") Integer userId, @Param("commentType") Integer commentType);
+
+    void unLikeComment(@Param("commentId") Integer commentId, @Param("userId") Integer userId);
+
+    Boolean getUserIsLikeComment(@Param("commentId") Integer commentId, @Param("userId") Integer userId);
+
+    void updateLikeCount(@Param("commentId") Integer commentId, @Param("delta") int delta);
 }

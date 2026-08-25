@@ -74,7 +74,7 @@ public class ArticleAppController extends BaseAppController {
 
     @SaCheckLogin
     @GetMapping("/like/{id}")
-    @AccessLimit(time = 5, count = 1)
+    @AccessLimit(time = 3, count = 1)
     @ApiOperation(value = "点赞文章")
     public Result<Boolean> like(@PathVariable Long id) {
         return Result.success(articleService.like(id));

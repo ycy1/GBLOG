@@ -30,8 +30,8 @@
   import { useSettingsStore } from '@/store/modules/settings'
   import Logo from '@/layouts/components/Sidebar/Logo.vue'
   import settings from '@/config/settings'
-  import { isExternal } from '@/utils/validate'
   import MenuItem from './MenuItem.vue'
+  import validate from '@/utils/validate'
   
   const route = useRoute()
   const permissionStore = usePermissionStore()
@@ -76,7 +76,7 @@
   // 修改路径处理函数
   const resolvePath = (routePath: string) => {
     // 如果是外部链接，直接返回原路径
-    if (isExternal(routePath)) {
+    if (validate.isExternal(routePath)) {
       return routePath
     }
     
@@ -97,7 +97,7 @@
   
   // 添加 select 事件处理函数
   const handleSelect = (index: string) => {
-    if (isExternal(index)) {
+    if (validate.isExternal(index)) {
       window.open(index, '_blank')
       return
     }

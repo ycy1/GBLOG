@@ -81,6 +81,7 @@ public interface SysArticleMapper extends BaseMapper<SysArticle> {
      */
     void unLike(@Param("articleId")Long articleId, @Param("userId")int userId);
 
+    void updateLikeCount(@Param("articleId") Long articleId, @Param("delta") int delta);
     /**
      * 文章点赞
      * @param articleId

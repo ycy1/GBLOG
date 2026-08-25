@@ -43,6 +43,17 @@ export function updateSysNoticeApi(data: any) {
     })
 }
 
+/**
+ * 显示/隐藏公告
+ */
+export function showSysNoticeApi(data: any) {
+    return request({
+        url: `/sys/notice/show`,
+        method: 'put',
+        data
+    })
+}
+
 
 /**
  * 删除公告

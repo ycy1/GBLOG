@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mojian.mapper.SysDeptMapper">
+
+    <!-- 筛选部门并统计人数：返回扁平列表，由 Service 构建树
+         1) dept_subtree：按所属部门(parentIds)保留所选部门及其所有子部门（子树）；未选择时不过滤
+         2) dept_keyword：按关键字(keyword)匹配部门名称或编码，并保留匹配节点及其所有祖先，避免树链断裂；未传关键字时不过滤
+         递归成员仅在对应筛选条件存在时才挂载，最终取两者交集，并统计各部门直接成员数(user_count)、负责人名称(leader_name) -->
+    <select id="selectDeptTree" resultType="com.mojian.entity.SysDept">
+        WITH RECURSIVE
+        dept_subtree AS (
+            SELECT id, parent_id
+            FROM sys_dept
+            WHERE 1 = 1
+            <if test="query.status != null">
+                AND status = #{query.status}
+            </if>
+            <if test="query.parentIds != null and query.parentIds.size() > 0">
+                AND id IN
+                <foreach collection="query.parentIds" item="pid" open="(" separator="," close=")">
+                    #{pid}
+                </foreach>
+            </if>
+            <if test="query.parentIds != null and query.parentIds.size() > 0">
+                UNION ALL
+                SELECT c.id, c.parent_id
+                FROM sys_dept c
+                INNER JOIN dept_subtree s ON c.parent_id = s.id
+            </if>
+        ),
+        dept_keyword AS (
+            SELECT id, parent_id
+            FROM sys_dept
+            WHERE 1 = 1
+            <if test="query.status != null">
+                AND status = #{query.status}
+            </if>
+            <if test="query.keyword != null and query.keyword != ''">
+                AND (name LIKE CONCAT('%', #{query.keyword}, '%') OR code LIKE CONCAT('%', #{query.keyword}, '%'))
+            </if>
+            <if test="query.keyword != null and query.keyword != ''">
+                UNION ALL
+                SELECT p.id, p.parent_id
+                FROM sys_dept p
+                INNER JOIN dept_keyword k ON p.id = k.parent_id
+            </if>
+        )
+        SELECT
+            d.id,
+            d.parent_id,
+            d.name,
+            d.code,
+            d.leader_id,
+            d.status,
+            d.sort_order,
+            d.create_time,
+            d.update_time,
+            lu.nickname AS leader_name,
+            (SELECT COUNT(*) FROM sys_dept_user sdu WHERE sdu.dept_id = d.id) AS user_count
+        FROM sys_dept d
+        LEFT JOIN sys_user lu ON lu.id = d.leader_id
+        WHERE d.id IN (SELECT id FROM dept_subtree)
+          AND d.id IN (SELECT id FROM dept_keyword)
+        ORDER BY d.sort_order, d.id
+    </select>
+
+    <!-- 分页查询部门下的人员 -->
+    <select id="selectDeptUserPage" resultType="com.mojian.vo.user.SysUserVo">
+        select
+            u.id,
+            u.username,
+            u.nickname,
+            u.avatar,
+            u.mobile,
+            u.email,
+            u.sex,
+            u.status,
+            u.last_login_time,
+            u.create_time
+        from sys_user u
+            inner join sys_dept_user sdu on u.id = sdu.user_id
+        where sdu.dept_id = #{deptId}
+        order by u.create_time desc
+    </select>
+</mapper>

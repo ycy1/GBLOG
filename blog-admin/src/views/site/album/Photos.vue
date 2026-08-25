@@ -14,11 +14,34 @@
                             :disabled="selectedIds.length === 0" @click="handleBatchDelete">批量删除</el-button>
                         <el-button v-permission="['sys:photo:move']" type="info" icon="Notification"
                             :disabled="selectedIds.length === 0" @click="handleBatchMove">批量移动</el-button>
+                        <el-button v-permission="['sys:photo:update']" type="warning" icon="CollectionTag"
+                            :disabled="selectedIds.length === 0" @click="handleBatchSetTags">批量设置标签</el-button>
                         <el-button type="success" icon="check" @click="handleAllSelect">全/反选</el-button>
 
                     </ButtonGroup>
                 </div>
             </template>
+
+            <!-- 搜索表单 -->
+            <div class="search-wrapper">
+                <el-form ref="queryFormRef" :model="queryParams" :inline="true">
+                    <el-form-item label="记录时间" prop="timeRange">
+                        <el-date-picker v-model="timeRange" type="daterange" value-format="YYYY-MM-DD"
+                            range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期"
+                            style="width: 260px" />
+                    </el-form-item>
+                    <el-form-item label="标签" prop="tagIds">
+                        <el-select v-model="queryParams.tagIds" multiple filterable clearable placeholder="请选择标签（可多选）"
+                            style="width: 240px">
+                            <el-option v-for="item in tagOptions" :key="item.id" :label="item.name" :value="item.id" />
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+                        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+                    </el-form-item>
+                </el-form>
+            </div>
 
             <!-- 数据表格 -->
             <div class="photo-list" v-loading="loading">
@@ -28,6 +51,15 @@
                             <el-checkbox :value="item.id" />
                         </span>
                         <el-image class="photo-image" :src="item.url" />
+                        <!-- 照片下方标签（最多展示 2 个，超出显示 +N） -->
+                        <div class="photo-tags-bar" v-if="item.tags && item.tags.length">
+                            <el-tag v-for="tag in item.tags.slice(0, 2)" :key="tag.id" size="small" class="photo-tag">
+                                {{ tag.name }}
+                            </el-tag>
+                            <el-tag v-if="item.tags.length > 2" size="small" type="info" class="photo-tag">
+                                +{{ item.tags.length - 2 }}
+                            </el-tag>
+                        </div>
                         <div class="photo-overlay">
                             <div class="photo-content">
                                 <div class="photo-time">
@@ -51,7 +83,7 @@
             <!-- 分页组件 -->
             <div class="pagination-container">
                 <el-pagination v-model:current-page="queryParams.pageNum" v-model:page-size="queryParams.pageSize"
-                    :page-sizes="[10, 20, 30, 50]" :total="total" :background="true"
+                    :page-sizes="[12, 24]" :total="total" :background="true"
                     layout="total, sizes, prev, pager, next, jumper" @size-change="handleSizeChange"
                     @current-change="handleCurrentChange" />
             </div>
@@ -71,6 +103,12 @@
                 <el-form-item label="记录时间" prop="recordTime">
                     <el-date-picker v-model="photoForm.recordTime" type="date" value-format="YYYY-MM-DD"
                         placeholder="请选择记录的日期..." />
+                </el-form-item>
+                <el-form-item label="标签" prop="tags">
+                    <el-select v-model="photoForm.tags" multiple filterable value-key="id" placeholder="请选择标签"
+                        style="width: 100%">
+                        <el-option v-for="item in tagOptions" :key="item.id" :label="item.name" :value="item" />
+                    </el-select>
                 </el-form-item>
                 <el-form-item label="排序" prop="sort">
                     <el-input-number v-model="photoForm.sort" :min="1" />
@@ -103,6 +141,27 @@
             </template>
         </el-dialog>
 
+        <!-- 批量设置标签对话框 -->
+        <el-dialog title="批量设置标签" v-model="setTagsDialog.visible" width="420px" append-to-body destroy-on-close>
+            <el-form label-width="80px">
+                <el-form-item label="标签">
+                    <el-select v-model="setTagsDialog.tagIds" multiple filterable clearable placeholder="请选择标签"
+                        style="width: 100%">
+                        <el-option v-for="item in tagOptions" :key="item.id" :label="item.name" :value="item.id" />
+                    </el-select>
+                </el-form-item>
+                <el-form-item>
+                    <div class="set-tags-tip">将添加到选中的 {{ selectedIds.length }} 张照片（保留原有标签，已存在的会自动去重）</div>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <div class="dialog-footer">
+                    <el-button @click="setTagsDialog.visible = false">取 消</el-button>
+                    <el-button type="primary" :loading="setTagsLoading" @click="confirmSetTags">确 定</el-button>
+                </div>
+            </template>
+        </el-dialog>
+
         <el-image-viewer v-if="openPreview" @close="closeViewer" :url-list="previewList" />
     </el-dialog>
 
@@ -126,18 +185,26 @@
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import UploadImage from '@/components/Upload/Image.vue'
-import { listPhotoApi, addPhotoApi, updatePhotoApi, deletePhotoApi, movePhotoApi } from '@/api/site/photo'
+import { listPhotoApi, addPhotoApi, updatePhotoApi, deletePhotoApi, movePhotoApi, setPhotoTagsApi } from '@/api/site/photo'
 import { listAlbumAllApi } from '@/api/site/album'
+import { getTagListApi } from '@/api/article/tag'
 
 // 上传地址
 const uploadUrl =  `${import.meta.env.VITE_APP_BASE_API}/sys/photo/uploadImageZip`
 // 查询参数
 const queryParams = reactive({
     pageNum: 1,
-    pageSize: 10,
-    albumId: 0
+    pageSize: 12,
+    albumId: 0,
+    tagIds: [] as number[],
+    beginTime: '',
+    endTime: ''
 })
 const uploadZipRef = ref()
+// 记录时间范围（日期选择器双向绑定）
+const timeRange = ref<[string, string] | null>(null)
+// 照片标签选项
+const tagOptions = ref<any[]>([])
 
 const loading = ref(false)
 const total = ref(0)
@@ -146,6 +213,7 @@ const previewList = ref<string[]>([])
 const openPreview = ref(false)
 const uploadZipOpen = ref(false)
 const photoFormRef = ref<FormInstance>()
+const queryFormRef = ref()
 const submitLoading = ref(false)
 
 // 所有相册
@@ -182,6 +250,7 @@ const photoForm = reactive<any>({
     url: '',
     recordTime: '',
     sort: 1,
+    tags: [],
 })
 
 // 表单校验规则
@@ -204,8 +273,13 @@ const rules = reactive<FormRules>({
 watch(() => props.openPhotos, (newVal) => {
     if (newVal) {
         selectedIds.value = []
+        timeRange.value = null
+        queryParams.tagIds = []
+        queryParams.beginTime = ''
+        queryParams.endTime = ''
         getList()
         getAlbumList()
+        getTagOptions()
     }
 })
 
@@ -214,7 +288,12 @@ const getList = async () => {
     loading.value = true
     try {
         queryParams.albumId = props.albumId
-        const { data } = await listPhotoApi(queryParams)
+        // 标签多选转逗号分隔字符串，保证后端 List<Integer> 正确绑定
+        const params = {
+            ...queryParams,
+            tagIds: queryParams.tagIds.length ? queryParams.tagIds.join(',') : undefined
+        }
+        const { data } = await listPhotoApi(params)
         photoList.value = data.records
         total.value = data.total
     } catch (error) {
@@ -242,6 +321,13 @@ const moveDialog = reactive({
     visible: false,
     targetAlbumId: undefined
 })
+
+// 批量设置标签对话框数据
+const setTagsDialog = reactive({
+    visible: false,
+    tagIds: [] as number[]
+})
+const setTagsLoading = ref(false)
 
 // 确认移动
 const confirmMove = async () => {
@@ -271,10 +357,61 @@ const cancelMove = () => {
     moveDialog.targetAlbumId = undefined
 }
 
+// 批量设置标签
+const handleBatchSetTags = () => {
+    if (selectedIds.value.length === 0) return
+    setTagsDialog.tagIds = []
+    setTagsDialog.visible = true
+}
+
+// 确认批量设置标签
+const confirmSetTags = async () => {
+    if (setTagsDialog.tagIds.length === 0) {
+        ElMessage.warning('请选择标签')
+        return
+    }
+    setTagsLoading.value = true
+    try {
+        await setPhotoTagsApi(selectedIds.value, setTagsDialog.tagIds)
+        ElMessage.success('批量设置标签成功')
+        setTagsDialog.visible = false
+        setTagsDialog.tagIds = []
+        selectedIds.value = []
+        getList()
+    } catch (error) {
+    } finally {
+        setTagsLoading.value = false
+    }
+}
+
 // 获取所有相册
 const getAlbumList = async () => {
     const { data } = await listAlbumAllApi()
     albumList.value = data
+}
+
+// 获取照片标签（photo 类型）
+const getTagOptions = async () => {
+    const { data } = await getTagListApi({ pageNum: 1, pageSize: 1000, type: 'photo' })
+    tagOptions.value = data.records || []
+}
+
+// 搜索
+const handleQuery = () => {
+    queryParams.pageNum = 1
+    queryParams.beginTime = timeRange.value?.[0] || ''
+    queryParams.endTime = timeRange.value?.[1] || ''
+    getList()
+}
+
+// 重置查询
+const resetQuery = () => {
+    queryFormRef.value?.resetFields()
+    timeRange.value = null
+    queryParams.tagIds = []
+    queryParams.beginTime = ''
+    queryParams.endTime = ''
+    handleQuery()
 }
 
 // 批量删除
@@ -325,6 +462,7 @@ const handleAdd = () => {
     photoForm.url = ''
     photoForm.recordTime = ''
     photoForm.sort = 1
+    photoForm.tags = []
 }
 
 // 添加zip文件
@@ -373,11 +511,16 @@ const submitForm = async () => {
         if (valid) {
             submitLoading.value = true
             try {
+                // 只提交标签id，避免携带 createTime 等无关字段
+                const photoData = {
+                    ...photoForm,
+                    tags: (photoForm.tags || []).map((t: any) => ({ id: t.id }))
+                }
                 if (dialog.type === 'add') {
-                    await addPhotoApi(photoForm)
+                    await addPhotoApi(photoData)
                     ElMessage.success('新增成功')
                 } else {
-                    await updatePhotoApi(photoForm)
+                    await updatePhotoApi(photoData)
                     ElMessage.success('修改成功')
                 }
                 getList()
@@ -415,6 +558,12 @@ const handleDialogClose = (val: boolean) => {
 </script>
 
 <style scoped lang="scss">
+
+.set-tags-tip {
+    font-size: 13px;
+    color: #909399;
+    line-height: 1.5;
+}
 
 .photo-list {
     display: flex;
@@ -461,6 +610,19 @@ const handleDialogClose = (val: boolean) => {
             height: 200px;
             object-fit: cover;
             display: block;
+        }
+
+        .photo-tags-bar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px;
+            padding: 8px 10px;
+            background: #fff;
+
+            .photo-tag {
+                max-width: 100%;
+            }
         }
 
         .photo-overlay {

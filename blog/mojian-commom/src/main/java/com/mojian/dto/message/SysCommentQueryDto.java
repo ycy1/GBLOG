@@ -17,8 +17,11 @@ import java.time.LocalDateTime;
 @ApiModel(value = "评论信息")
 public class SysCommentQueryDto {
 
-    @ApiModelProperty(value = "关联的文章ID，表明该评论所属的文章")
-    private Long articleId;
+    @ApiModelProperty(value = "关联的业务ID（文章/动态ID），表明该评论所属的业务")
+    private Long businessId;
+
+    @ApiModelProperty(value = "评论类型 1-文章 2-动态")
+    private Integer commentType;
 
     @ApiModelProperty(value = "用户昵称")
     private String nickname;

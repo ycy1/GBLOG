@@ -18,6 +18,7 @@ import java.util.List;
 
 /**
  * 文档知识加载器：根据文件后缀选择对应解析器读取文档内容
+ * @date 2026/7/17
  */
 @Slf4j
 @Component
@@ -254,28 +255,5 @@ public class DocumentKnowledgeLoader {
         return qIdx > 0 ? ext.substring(0, qIdx) : ext;
     }
 
-
-
-
-    public static void main(String[] args) {
-        String filePath = "C:\\Users\\Lenovo\\Desktop\\解晓君简历.docx";
-        try (FileInputStream fis = new FileInputStream(filePath);
-             XWPFDocument document = new XWPFDocument(fis)) {
-
-            // 1. 读取所有段落文本
-            System.out.println("===== 段落内容 =====");
-            List<XWPFParagraph> paragraphs = document.getParagraphs();
-            for (XWPFParagraph para : paragraphs) {
-                String text = para.getText().trim();
-                if (!text.isEmpty()) {
-                    System.out.println(text);
-                }
-            }
-
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
 }

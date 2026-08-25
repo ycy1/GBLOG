@@ -14,8 +14,6 @@ import { setupElIcons, setupPermission } from "@/plugins";
 import ButtonGroup from '@/components/ButtonGroup/index.vue'
 import permission from '@/directives/permission'
 
-
-
 const app = createApp(App)
 
 import SvgIcon from '@/components/SvgIcon/index.vue'

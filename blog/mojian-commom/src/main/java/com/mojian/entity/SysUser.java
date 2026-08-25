@@ -46,6 +46,9 @@ public class SysUser implements Serializable {
     @ApiModelProperty(value = "地区编码")
     private String areaCode;
 
+    @ApiModelProperty(value = "中文地址")
+    private String areaZh;
+
     @ApiModelProperty(value = "状态")
     private Integer status;
 
@@ -71,6 +74,12 @@ public class SysUser implements Serializable {
     @ApiModelProperty(value = "头像")
     private String avatar;
 
+    @ApiModelProperty(value = "背景图")
+    private String backImage;
+
+    @ApiModelProperty(value = "二维码")
+    private String qrImg;
+
     @ApiModelProperty(value = "手机号")
     private String mobile;
 
@@ -82,6 +91,18 @@ public class SysUser implements Serializable {
 
     @ApiModelProperty(value = "登录方式")
     private String loginType;
+
+    @ApiModelProperty(value = "所属部门ID列表（用户列表筛选用）")
+    @TableField(exist = false)
+    private List<Long> deptIds;
+
+    @ApiModelProperty(value = "用户名/昵称/账号关键字（用户列表筛选用）")
+    @TableField(exist = false)
+    private String keyword;
+
+    @ApiModelProperty(value = "排除的部门ID（添加部门人员时过滤已在该部门下的人员）")
+    @TableField(exist = false)
+    private Long excludeDeptId;
 
     @ApiModelProperty(value = "创建时间")
     @TableField(fill = FieldFill.INSERT)

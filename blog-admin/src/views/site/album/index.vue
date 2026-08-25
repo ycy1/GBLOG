@@ -1,6 +1,20 @@
 <template>
     <div class="app-container">
 
+        <!-- 搜索表单 -->
+        <div class="search-wrapper">
+            <el-form ref="queryFormRef" :model="queryParams" :inline="true">
+                <el-form-item label="名称" prop="name">
+                    <el-input v-model="queryParams.name" placeholder="请输入相册名称" clearable
+                        @keyup.enter="handleQuery" />
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+                    <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+                </el-form-item>
+            </el-form>
+        </div>
+
         <!-- 操作按钮区域 -->
         <el-card class="box-card">
             <template #header>
@@ -23,11 +37,19 @@
                         <span class="album-checkbox">
                             <el-checkbox :value="item.id" />
                         </span>
-                        <el-image class="album-cover" :src="item.cover" />
-                        <div class="album-lock" v-if="item.isLock">
-                            <el-icon>
-                                <Lock />
-                            </el-icon>
+                        <div class="album-cover-wrap">
+                            <el-image class="album-cover" :src="item.cover" />
+                            <div class="album-lock" v-if="item.isLock">
+                                <el-icon>
+                                    <Lock />
+                                </el-icon>
+                            </div>
+                            <span class="album-count">
+                                <el-icon>
+                                    <Picture />
+                                </el-icon>
+                                {{ item.photoNum ?? 0 }}
+                            </span>
                         </div>
                         <div class="album-info">
                             <div class="album-name">{{ item.name }}</div>
@@ -98,7 +120,9 @@ import Photos from './Photos.vue'
 const queryParams = reactive({
     pageNum: 1,
     pageSize: 10,
+    name: '',
 })
+const queryFormRef = ref()
 
 const loading = ref(false)
 const total = ref(0)
@@ -280,6 +304,19 @@ const cancel = () => {
     albumFormRef.value?.resetFields()
 }
 
+// 搜索
+const handleQuery = () => {
+    queryParams.pageNum = 1
+    getList()
+}
+
+// 重置查询
+const resetQuery = () => {
+    queryFormRef.value?.resetFields()
+    queryParams.name = ''
+    handleQuery()
+}
+
 // 分页大小改变
 const handleSizeChange = (val: number) => {
     queryParams.pageSize = val
@@ -316,12 +353,31 @@ onMounted(() => {
             left: 10px;
         }
 
+        .album-cover-wrap {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
         .album-cover {
             border-top-left-radius: 10px;
             border-top-right-radius: 10px;
             width: 300px;
             height: 150px;
-            margin-bottom: 10px;
+            display: block;
+        }
+
+        .album-count {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: #fff;
+            background-color: rgba(0, 0, 0, 0.45);
+            border-radius: 12px;
+            padding: 2px 10px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .album-lock {
@@ -349,6 +405,7 @@ onMounted(() => {
             .album-name {
                 font-size: 16px;
                 font-weight: bold;
+                margin-top: 10px;
                 margin-bottom: 10px;
             }
 

@@ -11,6 +11,12 @@
               @keyup.enter="handleQuery"
             />
           </el-form-item>
+          <el-form-item label="类型" prop="type">
+            <el-select v-model="queryParams.type" placeholder="请选择类型" clearable style="width: 140px">
+              <el-option label="文章" value="article" />
+              <el-option label="照片" value="photo" />
+            </el-select>
+          </el-form-item>
           <el-form-item>
             <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
             <el-button icon="Refresh" @click="resetQuery">重置</el-button>
@@ -49,6 +55,13 @@
         >
           <el-table-column type="selection"  width="55" align="center" />
           <el-table-column label="名称" align="center" prop="name" show-overflow-tooltip />
+          <el-table-column label="类型" align="center" width="100">
+            <template #default="scope">
+              <el-tag :type="scope.row.type === 'photo' ? 'success' : 'primary'">
+                {{ scope.row.type === 'photo' ? '照片' : '文章' }}
+              </el-tag>
+            </template>
+          </el-table-column>
           <el-table-column label="排序" align="center" prop="sort" show-overflow-tooltip />
           <el-table-column label="创建时间" align="center" prop="createTime" width="180" />
           <el-table-column label="操作" align="center" width="280" fixed="right">
@@ -107,11 +120,17 @@
           class="custom-form"
         >
             <el-form-item label="名称" prop="name">
-                <el-input 
-                    v-model="tagForm.name" 
-                    placeholder="请输入名称" 
+                <el-input
+                    v-model="tagForm.name"
+                    placeholder="请输入名称"
                     clearable
                 />
+            </el-form-item>
+            <el-form-item label="类型" prop="type">
+                <el-radio-group v-model="tagForm.type">
+                    <el-radio value="article">文章</el-radio>
+                    <el-radio value="photo">照片</el-radio>
+                </el-radio-group>
             </el-form-item>
             <el-form-item label="排序" prop="sort">
                 <el-input-number
@@ -172,7 +191,8 @@
   const queryParams = reactive({
     pageNum: 1,
     pageSize: 10,
-    name: null
+    name: null,
+    type: null
   })
   
   const loading = ref(false)
@@ -196,6 +216,7 @@
   const tagForm = reactive({
     id: undefined,
     name: '',
+    type: 'article',
     sort: 0,
   })
   
@@ -281,6 +302,7 @@
     dialog.visible = true
     tagForm.id = undefined
     tagForm.name = ''
+    tagForm.type = 'article'
     tagForm.sort = 0
   }
   

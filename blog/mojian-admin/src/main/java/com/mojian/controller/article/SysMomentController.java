@@ -3,6 +3,7 @@ package com.mojian.controller.article;
 import java.util.List;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import com.mojian.vo.moment.MomentPageVo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +26,7 @@ public class SysMomentController {
 
     @GetMapping("/list")
     @ApiOperation(value = "获取说说列表")
-    public Result<IPage<SysMoment>> list(SysMoment sysMoment) {
+    public Result<IPage<MomentPageVo>> list(SysMoment sysMoment) {
         return Result.success(sysMomentService.selectPage(sysMoment));
     }
 

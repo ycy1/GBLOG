@@ -4,7 +4,10 @@ package com.mojian.service.impl;
 import cn.dev33.satoken.stp.StpUtil;
 import com.mojian.common.Constants;
 import com.mojian.dto.message.SysFeedbackQueryDto;
+import com.mojian.entity.SysNotifications;
+import com.mojian.utils.NotificationsUtil;
 import com.mojian.vo.feedback.SysFeedbackVo;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import com.mojian.mapper.SysFeedbackMapper;
 import com.mojian.entity.SysFeedback;
@@ -14,12 +17,17 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.RequiredArgsConstructor;
 
-/**
- * 反馈表 服务实现类
- */
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SysFeedbackServiceImpl extends ServiceImpl<SysFeedbackMapper, SysFeedback> implements SysFeedbackService {
+
+    private final NotificationsUtil notificationsUtil;
+
+    private final ExecutorService taskExecutor = Executors.newFixedThreadPool(10);
 
     /**
      * 查询反馈表分页列表
@@ -39,7 +47,27 @@ public class SysFeedbackServiceImpl extends ServiceImpl<SysFeedbackMapper, SysFe
     @Override
     public boolean insert(SysFeedback sysFeedback) {
         sysFeedback.setUserId(StpUtil.getLoginIdAsLong());
-        return save(sysFeedback);
+        boolean result = save(sysFeedback);
+        if (result) {
+            String content = sysFeedback.getContent();
+            Long fromUserId = StpUtil.getLoginIdAsLong();
+            taskExecutor.submit(() -> {
+                try {
+                    SysNotifications notifications = SysNotifications.builder()
+                            .title("新反馈通知")
+                            .message(content)
+                            .businessId(sysFeedback.getId())
+                            .businessType("feedback")
+                            .noticePush(NotificationsUtil.buildNoticePush(1L))
+                            .fromUserId(fromUserId)
+                            .build();
+                    notificationsUtil.publish(notifications);
+                } catch (Exception e) {
+                    log.error("发送通知失败", e);
+                }
+            });
+        }
+        return result;
     }
 
     /**

@@ -21,8 +21,8 @@ public class SysComment implements Serializable {
     @ApiModelProperty(value = "评论主键ID，自增唯一标识")
     private Integer id;
 
-    @ApiModelProperty(value = "关联的文章ID，表明该评论所属的文章")
-    private Long articleId;
+    @ApiModelProperty(value = "关联的业务ID（文章/动态ID），表明该评论所属的业务")
+    private Long businessId;
 
     @ApiModelProperty(value = "发表评论的用户ID")
     private Long userId;
@@ -32,6 +32,9 @@ public class SysComment implements Serializable {
 
     @ApiModelProperty(value = "父评论ID，用于实现回复评论的层级结构，若为顶级评论则为NULL")
     private Integer parentId;
+
+    @ApiModelProperty(value = "评论类型 1-文章 2-动态")
+    private Integer commentType;
 
     @ApiModelProperty(value = "评论内容，使用utf8mb4字符集以支持更多字符类型")
     private String content;

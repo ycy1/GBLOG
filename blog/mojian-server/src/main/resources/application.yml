@@ -61,10 +61,10 @@ logging:
     name: ./logs/mojian.log
   logback:
     rollingpolicy:
-      clean-history-on-start: false
-      max-history: 30
-      max-file-size: 10MB
-      total-size-cap: 1GB
+      clean-history-on-start: false # 是否在启动时清空历史日志
+      max-history: 30 # 保留30天
+      max-file-size: 10MB # 每个日志文件最大10M
+      total-size-cap: 1GB # 日志文件总大小
       file-name-pattern: ./logs/mojian-%d{yyyy-MM-dd}.%i.log
 
 

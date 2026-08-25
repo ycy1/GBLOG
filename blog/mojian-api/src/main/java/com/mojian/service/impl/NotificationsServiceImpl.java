@@ -1,8 +1,6 @@
 package com.mojian.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
-import cn.hutool.core.collection.CollectionUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.mojian.entity.SysNotifications;
 import com.mojian.exception.ServiceException;
@@ -13,8 +11,6 @@ import com.mojian.vo.notifications.NotificationsListVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -30,29 +26,35 @@ public class NotificationsServiceImpl implements NotificationsService {
 
 
     public IPage<NotificationsListVo> page(SysNotifications notifications) {
-        notifications.setUserId(StpUtil.getLoginIdAsLong());
-        return baseMapper.selectNotificationsPage(PageUtil.getPage(),notifications);
+        // 可见性/已读均由 SQL 层根据 notice_push 与 sys_notifications_receiver 计算
+        return baseMapper.selectNotificationsPage(PageUtil.getPage(), notifications, StpUtil.getLoginIdAsLong());
     }
 
     @Override
     public void doRead(Long id) {
+        // 先校验主消息存在且未删除
         SysNotifications notifications = baseMapper.selectById(id);
-        if (notifications == null) {
+        if (notifications == null || (notifications.getDelFlag() != null && notifications.getDelFlag() == 1)) {
             throw new ServiceException("消息通知不存在");
         }
-        notifications.setIsRead(1);
-        baseMapper.updateById(notifications);
+        // 存在已读记录则修改 is_read=1，否则插入（幂等 upsert）
+        baseMapper.doRead(StpUtil.getLoginIdAsLong(), id);
     }
 
     @Override
     public void allRead() {
-        baseMapper.update(SysNotifications.builder().isRead(1).build(),new LambdaQueryWrapper<SysNotifications>()
-                .eq(SysNotifications::getUserId, StpUtil.getLoginIdAsLong()));
+        baseMapper.allRead(StpUtil.getLoginIdAsLong());
     }
 
     @Override
     public void delete(Long id) {
-        baseMapper.deleteById(id);
+        // 先校验主消息存在且未删除
+        SysNotifications notifications = baseMapper.selectById(id);
+        if (notifications == null || (notifications.getDelFlag() != null && notifications.getDelFlag() == 1)) {
+            throw new ServiceException("消息不存在或无权删除");
+        }
+        // 接收人删除：receiver 记录置 is_deleted=1（仅对当前用户隐藏，删除对自己可见的消息）
+        baseMapper.deleteByUser(StpUtil.getLoginIdAsLong(), id);
     }
 
     @Override
@@ -61,11 +63,13 @@ public class NotificationsServiceImpl implements NotificationsService {
     }
 
     @Override
+    public NotificationsListVo getById(Long id) {
+        return baseMapper.selectNotificationsById(id, StpUtil.getLoginIdAsLong());
+    }
+
+    @Override
     public Boolean getMyIsUnread() {
-        List<SysNotifications> sysNotifications = baseMapper.selectList(new LambdaQueryWrapper<SysNotifications>()
-                .eq(SysNotifications::getUserId, StpUtil.getLoginIdAsLong())
-                .eq(SysNotifications::getIsRead, 0));
-        return CollectionUtil.isNotEmpty(sysNotifications);
+        return baseMapper.countMyUnread(StpUtil.getLoginIdAsLong()) > 0;
     }
 
 }

@@ -53,15 +53,4 @@ public class UserController {
         return Result.success(userService.getMyReply());
     }
 
-    @GetMapping("/myLike")
-    @ApiOperation(value = "获取我的点赞")
-    public Result<IPage<ArticleListVo>> selectMyLike(){
-        return Result.success(userService.selectMyLike());
-    }
-
-    @GetMapping("/myArticle")
-    @ApiOperation(value = "获取我的文章")
-    public Result<IPage<ArticleListVo>> selectMyArticle(SysArticle article){
-        return Result.success(userService.selectMyArticle(article));
-    }
 }

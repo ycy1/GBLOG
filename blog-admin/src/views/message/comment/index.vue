@@ -10,6 +10,13 @@
           <el-form-item label="用户昵称" prop="nickname">
             <el-input v-model="queryParams.nickname" placeholder="请输入用户昵称" clearable @keyup.enter="handleQuery" />
           </el-form-item>
+          <el-form-item label="评论类型" prop="commentType">
+            <el-select v-model="queryParams.commentType" placeholder="评论类型" clearable @change="handleQuery">
+              <el-option label="全部" :value="undefined" />
+              <el-option label="文章" :value="1" />
+              <el-option label="动态" :value="2" />
+            </el-select>
+          </el-form-item>
           <el-form-item label="评论内容" prop="content">
             <el-input v-model="queryParams.content" placeholder="请输入评论内容" clearable @keyup.enter="handleQuery" />
           </el-form-item>
@@ -53,6 +60,13 @@
           <el-table-column label="用户昵称" align="center" width="120" prop="nickname" show-overflow-tooltip />
           <el-table-column label="回复人昵称" align="center" width="120" prop="replyNickname" show-overflow-tooltip />
           <el-table-column label="文章标题" align="center" prop="articleTitle" show-overflow-tooltip />
+          <el-table-column label="评论类型" align="center" width="100">
+            <template #default="scope">
+              <el-tag :type="scope.row.commentType === 2 ? 'success' : 'primary'" size="small">
+                {{ scope.row.commentType === 2 ? '动态' : '文章' }}
+              </el-tag>
+            </template>
+          </el-table-column>
           <el-table-column label="评论内容" width="300" align="center" prop="content" show-overflow-tooltip>
             <template #default="scope">
                 <span v-html="scope.row.content"></span>
@@ -175,7 +189,8 @@
   const queryParams = reactive({
     pageNum: 1,
     pageSize: 10,
-    articleId: undefined as number | undefined,
+    businessId: undefined as number | undefined,
+    commentType: undefined as number | undefined,
     articleTitle: '',
     nickname: '',
     content: ''
@@ -249,7 +264,7 @@
   // 重置搜索
   const resetQuery = () => {
     queryFormRef.value?.resetFields()
-    queryParams.articleId = undefined
+    queryParams.businessId = undefined
     queryParams.articleTitle = ''
     queryParams.nickname = ''
     queryParams.content = ''
@@ -259,7 +274,7 @@
 
   // 清除文章筛选
   const clearArticleFilter = () => {
-    queryParams.articleId = undefined
+    queryParams.businessId = undefined
     articleTitle.value = ''
     queryParams.articleTitle = ''
     handleQuery()
@@ -279,9 +294,9 @@
   
   // 初始化
   onMounted(() => {
-    const { articleId: id, articleTitle: title } = route.query
+    const { businessId: id, articleTitle: title } = route.query
     if (id) {
-      queryParams.articleId = Number(id)
+      queryParams.businessId = Number(id)
       articleTitle.value = title as string
     }
     getList()

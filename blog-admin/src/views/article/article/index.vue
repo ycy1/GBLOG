@@ -800,7 +800,7 @@ onMounted(() => {
   getCategoryListApi({ pageNum: 1, pageSize: 1000 }).then((res) => {
     categoryOptions.value = res.data.records
   })
-  getTagListApi({ pageNum: 1, pageSize: 1000 }).then((res) => {
+  getTagListApi({ pageNum: 1, pageSize: 1000, type: 'article' }).then((res) => {
     tagOptions.value = res.data.records
   })
 

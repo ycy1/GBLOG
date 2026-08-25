@@ -2,6 +2,7 @@ package com.mojian.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.mojian.dto.ai.ChatDto;
 import com.mojian.entity.Agent;
 import com.mojian.entity.Conversation;
@@ -443,8 +444,9 @@ public class AiChatServiceImpl implements AiChatService {
         conversation.setLastActiveAt(LocalDateTime.now());
         conversationMapper.updateById(conversation);
 
-        // 更新智能体消息计数
-        agent.setTotalMessages(agent.getTotalMessages() != null ? agent.getTotalMessages() + 2 : 2);
-        agentMapper.updateById(agent);
+        // 仅更新智能体消息计数，避免全字段更新
+        agentMapper.update(null, new LambdaUpdateWrapper<Agent>()
+                .eq(Agent::getId, agent.getId())
+                .setSql("total_messages = total_messages + 2"));
     }
 }

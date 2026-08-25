@@ -23,14 +23,19 @@ import com.mojian.mapper.SysArticleMapper;
 import com.mojian.mapper.SysCategoryMapper;
 import com.mojian.utils.PageUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ArticleServiceImpl implements ArticleService {
@@ -43,7 +48,9 @@ public class ArticleServiceImpl implements ArticleService {
 
     private final RedisUtil redisUtil;
 
-    private final NotificationsUtil notificationsUtil;
+    @Autowired
+    @Qualifier("notificationsUtil")
+    private NotificationsUtil notificationsUtil;
 
     @Override
     public IPage<ArticleListVo> getArticleList(Integer tagId, Integer categoryId, String keyword) {
@@ -107,6 +114,10 @@ public class ArticleServiceImpl implements ArticleService {
         return getArticlesByCondition(SysArticle::getIsRecommend);
     }
 
+    // 使用独立的线程池，避免阻塞主线程
+    // ExecutorService 默认会开启与当前 Web 上下文（如 Request、Session、安全上下文）隔离的线程。
+    private final ExecutorService taskExecutor = Executors.newFixedThreadPool(10);
+
     @Override
     public Boolean like(Long articleId) {
         // 判断是否点赞
@@ -115,21 +126,30 @@ public class ArticleServiceImpl implements ArticleService {
         if (isLike) {
             // 点过则取消点赞
             sysArticleMapper.unLike(articleId, userId);
+            sysArticleMapper.updateLikeCount(articleId, -1);
         } else {
             sysArticleMapper.like(articleId, userId);
-            ThreadUtil.execAsync(() -> {
-                //发送通知事件
-                SysNotifications notifications = SysNotifications.builder()
-                        .title("文章点赞通知")
-                        .articleId(articleId)
-                        .isRead(0)
-                        .type("like")
-                        .fromUserId(StpUtil.getLoginIdAsLong())
-                        .build();
-                notificationsUtil.publish(notifications);
+            sysArticleMapper.updateLikeCount(articleId, 1);
+            //发送通知事件
+            SysArticle article = sysArticleMapper.selectById(articleId);
+            if (article == null) return true;
+            long loginIdAsLong = StpUtil.getLoginIdAsLong();
+            taskExecutor.submit(() -> {
+                try {
+                    SysNotifications notifications = SysNotifications.builder()
+                            .title("文章点赞通知")
+                            .businessId(articleId)
+                            .businessType("article")
+                            .noticePush(NotificationsUtil.buildNoticePush(article.getUserId()))
+                            .fromUserId(loginIdAsLong)
+                            .build();
+                    notificationsUtil.publish(notifications);
+                } catch (Exception e) {
+                    log.error("发送通知失败", e);
+                }
             });
         }
-        return true;
+            return true;
     }
 
     @Override

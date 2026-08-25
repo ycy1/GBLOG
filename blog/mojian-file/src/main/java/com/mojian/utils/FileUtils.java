@@ -10,6 +10,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -58,6 +59,7 @@ public class FileUtils {
      */
     public static File compressFile(MultipartFile multipartFile) {
         log.info("libwebp：图片压缩start,大小:{}", FileUtils.convertFileSize(multipartFile.getSize()));
+        File compressFile = null;
         String outputPath = System.getProperty("user.dir") + File.separator + "libwebp";
         try {
             String filePath = outputPath + File.separator + multipartFile.getOriginalFilename();
@@ -86,16 +88,18 @@ public class FileUtils {
                 log.info("libwebp：{}", line);
             }
             // 等待进程结束
-            int exitCode = process.waitFor();
+            boolean finished = process.waitFor(60, TimeUnit.SECONDS); // 等待60秒
+            int i = process.exitValue();
+            if (finished && i == 0) {
+                compressFile = new File(outputPath + File.separator + "compressFile.webp");
+                log.info("libwebp：图片压缩end,大小:{}", FileUtils.convertFileSize(compressFile.length()));
+            } else {
+                log.error("libwebp：图片压缩失败");
+            }
             FileUtil.del(file);
-//            System.out.println("Exited with code: " + exitCode);
-//            System.exit(0);
-
         } catch (Exception e) {
             log.error("文件压缩异常,{}", e.getMessage());
         }
-        File compressFile = new File(outputPath + File.separator + "compressFile.webp");
-        log.info("libwebp：图片压缩end,大小:{}", FileUtils.convertFileSize(compressFile.length()));
         return compressFile;
     }
 

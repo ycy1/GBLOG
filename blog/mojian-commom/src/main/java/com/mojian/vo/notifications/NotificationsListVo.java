@@ -24,14 +24,17 @@ public class NotificationsListVo {
     @ApiModelProperty(value = "来自用户id")
     private Long fromUserId;
 
-    @ApiModelProperty(value = "文章id")
-    private Long articleId;
+    @ApiModelProperty(value = "业务id（文章id、动态id等）")
+    private Long businessId;
 
-    @ApiModelProperty(value = "文章标题")
-    private String articleTitle;
+    @ApiModelProperty(value = "业务类型（article、moment等）")
+    private String businessType;
 
-    @ApiModelProperty(value = "通知的类型，如 system、comment、like 等")
-    private String type;
+    @ApiModelProperty(value = "业务标题")
+    private String businessTitle;
+
+    @ApiModelProperty(value = "业务内容")
+    private String businessMessage;
 
     @ApiModelProperty(value = "通知的标题")
     private String title;
@@ -39,11 +42,20 @@ public class NotificationsListVo {
     @ApiModelProperty(value = "通知的具体内容")
     private String message;
 
-    @ApiModelProperty(value = "标记通知是否已读，0 表示未读，1 表示已读")
+    @ApiModelProperty(value = "推送对象（JSON：{\"user\":[],\"dept\":[],\"role\":[]}，null 或全空=全员可见）")
+    private String noticePush;
+
+    @ApiModelProperty(value = "阅读数（当前发送批次的阅读记录条数）")
+    private Long readCount;
+
+    @ApiModelProperty(value = "标记通知是否已读，0 表示未读，1 表示已读（门户/App 端按当前用户计算）")
     private Integer isRead;
 
     @ApiModelProperty(value = "通知关联的链接，可为空")
     private String link;
+
+    @ApiModelProperty(value = "删除标记，0 未删除，1 已删除")
+    private Integer delFlag;
 
     @ApiModelProperty(value = "通知的创建时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

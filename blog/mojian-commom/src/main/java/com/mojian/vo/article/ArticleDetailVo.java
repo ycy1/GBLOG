@@ -64,6 +64,9 @@ public class ArticleDetailVo {
     @ApiModelProperty(value = "Ai生成的简短描述")
     private String aiDescribe;
 
+    @ApiModelProperty(value = "文章摘要")
+    private String summary;
+
     @ApiModelProperty(value = "标签列表")
     private List<TagListVo> tags;
 

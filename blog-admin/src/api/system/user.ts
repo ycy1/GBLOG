@@ -14,7 +14,7 @@ export function getUserListApi(params?: any) {
 /**
  * 获取用户详情
  */
-export function getUserDetailApi(id: string) {
+export function getUserDetailApi(id: number) {
   return request({
     url: `/sys/user/${id}`,
     method: 'get'
@@ -61,6 +61,14 @@ export function resetPasswordApi(data: any) {
     url: '/sys/user/reset',
     method: 'put',
     data
+  })
+}
+
+// 生成用户二维码
+export function generateUserQrApi(id: number | string) {
+  return request({
+    url: `/sys/user/generateQr/${id}`,
+    method: 'post'
   })
 }
 

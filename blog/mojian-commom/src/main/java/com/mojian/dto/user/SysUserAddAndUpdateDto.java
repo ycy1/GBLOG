@@ -16,4 +16,7 @@ public class SysUserAddAndUpdateDto {
 
     @ApiModelProperty(value = "角色ID列表")
     private List<Integer> roleIds;
+
+    @ApiModelProperty(value = "部门ID列表")
+    private List<Long> deptIds;
 }

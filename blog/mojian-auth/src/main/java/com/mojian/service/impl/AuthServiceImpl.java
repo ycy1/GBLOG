@@ -170,6 +170,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public Boolean updateProfile(SysUser user) {
+        user.setId(StpUtil.getLoginIdAsInt()); // 设置当前登录用户ID
         user.setUpdateTime(LocalDateTime.now());
         return userMapper.updateById(user) == 1 ;
     }

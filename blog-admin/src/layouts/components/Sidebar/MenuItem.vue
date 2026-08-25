@@ -34,8 +34,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import AppLink from './Link.vue'
-import { isExternal } from '@/utils/validate'
 import type { RouteRecordRaw } from 'vue-router'
+import validate from '@/utils/validate'
 
 const props = defineProps<{
   route: any
@@ -50,7 +50,7 @@ const isLeafOrDashboard = computed(() => {
 
 const resolvePath = (routePath: string) => {
   // 如果是外部链接，直接返回
-  if (isExternal(routePath)) {
+  if (validate.isExternal(routePath)) {
     return routePath
   }
   

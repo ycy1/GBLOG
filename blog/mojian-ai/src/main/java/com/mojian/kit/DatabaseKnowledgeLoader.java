@@ -8,6 +8,7 @@ import java.sql.*;
 
 /**
  * 数据库知识加载器：读取数据库表结构作为 AI 知识上下文
+ * @Date 2026/7/17
  */
 @Slf4j
 @Component

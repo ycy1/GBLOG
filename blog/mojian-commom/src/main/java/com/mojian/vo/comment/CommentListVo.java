@@ -16,8 +16,8 @@ public class CommentListVo {
     @ApiModelProperty(value = "评论主键ID，自增唯一标识")
     private Integer id;
 
-    @ApiModelProperty(value = "关联的文章ID，表明该评论所属的文章")
-    private Integer articleId;
+    @ApiModelProperty(value = "关联的业务ID（文章/动态ID），表明该评论所属的业务")
+    private Integer businessId;
 
     @ApiModelProperty(value = "关联的文章标题")
     private String articleTitle;
@@ -43,6 +43,9 @@ public class CommentListVo {
     @ApiModelProperty(value = "是否置顶")
     private Integer isStick;
 
+    @ApiModelProperty(value = "点赞数")
+    private Integer likeCount;
+
     @ApiModelProperty(value = "ip")
     private String ip;
 
@@ -58,4 +61,7 @@ public class CommentListVo {
 
     @ApiModelProperty(value = "子评论")
     private List<CommentListVo> children;
+
+    @ApiModelProperty(value = "当前登录用户是否已点赞")
+    private Boolean isLike;
 }

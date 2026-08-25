@@ -49,6 +49,13 @@ public class SysNoticeController {
         return Result.success(sysNoticeService.update(sysNotice));
     }
 
+    @PutMapping("/show")
+    @SaCheckPermission("sys:notice:update")
+    @ApiOperation(value = "修改公告")
+    public Result<Object> show(@RequestBody SysNotice sysNotice) {
+        return Result.success(sysNoticeService.show(sysNotice));
+    }
+
     @DeleteMapping("/delete/{ids}")
     @SaCheckPermission("sys:notice:delete")
     @ApiOperation(value = "删除公告")

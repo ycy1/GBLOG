@@ -53,4 +53,13 @@ public interface UserService {
      */
     IPage<ArticleListVo> selectMyArticle(SysArticle article);
 
+    /**
+     * 删除我的文章
+     */
+    void deleteMyArticle(Long id);
+
+    /**
+     * 取消点赞文章
+     */
+    void cancelMyLike(Long id);
 }

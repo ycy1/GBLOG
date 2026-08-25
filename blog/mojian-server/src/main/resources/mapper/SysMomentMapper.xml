@@ -8,11 +8,68 @@
             m.title,
             m.content,
             m.images,
+            m.like_count,
             m.create_time,
             u.nickname,
-            u.avatar
+            u.avatar,
+            <if test="userId != null">
+                (SELECT COUNT(sml.id) > 0 FROM sys_moment_like sml WHERE sml.moment_id = m.id AND sml.user_id = #{userId}) AS is_like,
+            </if>
+            (SELECT COUNT(sc.id) FROM sys_comment sc WHERE sc.business_id = m.id AND sc.comment_type = 2) AS comment_num
         from sys_moment m
         left join sys_user u on m.user_id = u.id
         order by m.create_time desc
     </select>
+
+    <select id="selectMyMomentPage" resultType="com.mojian.vo.moment.MomentPageVo">
+        select
+            m.id,
+            m.title,
+            m.content,
+            m.images,
+            m.like_count,
+            m.create_time,
+            u.nickname,
+            u.avatar,
+            (SELECT COUNT(sc.id) FROM sys_comment sc WHERE sc.business_id = m.id AND sc.comment_type = 2) AS comment_num
+        from sys_moment m
+        left join sys_user u on m.user_id = u.id
+        where m.user_id = #{userId}
+        order by m.create_time desc
+    </select>
+
+    <select id="selectDetail" resultType="com.mojian.vo.moment.MomentPageVo">
+        select
+            m.id,
+            m.title,
+            m.content,
+            m.images,
+            m.like_count,
+            m.create_time,
+            u.nickname,
+            u.avatar,
+            <if test="userId != null">
+                (SELECT COUNT(sml.id) > 0 FROM sys_moment_like sml WHERE sml.moment_id = m.id AND sml.user_id = #{userId}) AS is_like,
+            </if>
+            (SELECT COUNT(sc.id) FROM sys_comment sc WHERE sc.business_id = m.id AND sc.comment_type = 2) AS comment_num
+        from sys_moment m
+        left join sys_user u on m.user_id = u.id
+        where m.id = #{id}
+    </select>
+
+    <insert id="likeMoment">
+        INSERT INTO sys_moment_like(moment_id, user_id) VALUES (#{momentId}, #{userId})
+    </insert>
+
+    <delete id="unLikeMoment">
+        DELETE FROM sys_moment_like WHERE user_id = #{userId} AND moment_id = #{momentId}
+    </delete>
+
+    <select id="getUserIsLikeMoment" resultType="java.lang.Boolean">
+        SELECT COUNT(id) > 0 FROM sys_moment_like WHERE user_id = #{userId} AND moment_id = #{momentId}
+    </select>
+
+    <update id="updateLikeCount">
+        UPDATE sys_moment SET like_count = GREATEST(IFNULL(like_count, 0) + #{delta}, 0) WHERE id = #{momentId}
+    </update>
 </mapper>

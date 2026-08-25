@@ -17,4 +17,8 @@ public class MomentPageVo extends SysMoment {
 
     private String avatar;
 
+    private Boolean isLike;
+
+    private Integer commentNum;
+
 }

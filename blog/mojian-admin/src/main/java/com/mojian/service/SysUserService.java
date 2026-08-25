@@ -41,6 +41,14 @@ public interface SysUserService extends IService<SysUser> {
     void updatePwd(UpdatePwdDTO updatePwdDTO);
 
     /**
+     * 生成用户二维码并更新 qr_img
+     *
+     * @param userId 用户id
+     * @return 二维码图片地址
+     */
+    String generateQr(Integer userId);
+
+    /**
      * 获取个人信息
      * @return
      */

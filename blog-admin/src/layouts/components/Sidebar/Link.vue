@@ -6,8 +6,8 @@
   
   <script setup lang="ts">
   import { computed } from 'vue'
-  import { isExternal } from '@/utils/validate'
   import type { RouteLocationRaw } from 'vue-router'
+  import validate from '@/utils/validate'
   
   interface Props {
     to: string | RouteLocationRaw
@@ -17,7 +17,7 @@
   
   const isExternalLink = computed(() => {
     if (typeof props.to === 'string') {
-      return isExternal(props.to)
+      return validate.isExternal(props.to)
     }
     return false
   })

@@ -40,6 +40,12 @@ public class SysUserController {
         return Result.success();
     }
 
+    @GetMapping("/{id}")
+    @ApiOperation(value = "获取用户信息")
+    public Result<SysUser> getUser(@PathVariable Integer id) {
+        return Result.success(sysUserService.getById(id));
+    }
+
     @PutMapping
     @OperationLogger("修改用户")
     @ApiOperation(value = "修改用户")
@@ -64,6 +70,13 @@ public class SysUserController {
     public Result<Void> updatePwd(@RequestBody UpdatePwdDTO updatePwdDTO) {
         sysUserService.updatePwd(updatePwdDTO);
         return Result.success();
+    }
+
+    @PostMapping("/generateQr/{id}")
+    @ApiOperation(value = "生成用户二维码")
+    @SaCheckPermission("sys:user:update")
+    public Result<String> generateQr(@PathVariable Integer id) {
+        return Result.success(sysUserService.generateQr(id));
     }
 
     @GetMapping("/profile")

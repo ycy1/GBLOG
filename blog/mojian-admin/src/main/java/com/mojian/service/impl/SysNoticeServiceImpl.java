@@ -1,10 +1,16 @@
 package com.mojian.service.impl;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.mojian.common.Constants;
+import com.mojian.entity.SysNotifications;
 import com.mojian.enums.NoticePosttionEnum;
 import com.mojian.exception.ServiceException;
+import com.mojian.utils.EmailUtil;
+import com.mojian.utils.NotificationsUtil;
 import org.springframework.stereotype.Service;
 import com.mojian.mapper.SysNoticeMapper;
 import com.mojian.entity.SysNotice;
@@ -22,6 +28,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SysNoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> implements SysNoticeService {
 
+    private final NotificationsUtil notificationsUtil;
+
+    private final ExecutorService taskExecutor = Executors.newFixedThreadPool(10);
     /**
      * 查询公告分页列表
      */
@@ -63,7 +72,31 @@ public class SysNoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice
                 throw new ServiceException("显示的顶部公告只能有一个!");
             }
         }
-        return save(sysNotice);
+
+        boolean result = save(sysNotice);
+        // 是否发送：新增弹窗点击“发送”（send=true），或添加即展示（isShow=1，原行为）→ 立即推送
+        boolean shouldPush = Boolean.TRUE.equals(sysNotice.getSend())
+                || sysNotice.getIsShow() == Constants.YES;
+        if (shouldPush) {
+            long loginIdAsLong = StpUtil.getLoginIdAsLong();
+            taskExecutor.submit(() -> {
+                try {
+                    SysNotifications notifications = SysNotifications.builder()
+                            .title("公告通知【"+ sysNotice.getTitle()+"】")
+                            .message(sysNotice.getContent())
+                            .businessId(sysNotice.getId())
+                            .businessType("notice")
+                            // 推送对象由公告的 notice_push 指定（null 或全空 = 全员可见）
+                            .noticePush(sysNotice.getNoticePush())
+                            .fromUserId(loginIdAsLong)
+                            .build();
+                    notificationsUtil.publish(notifications);
+                } catch (Exception e) {
+                    log.error("发送通知失败", e);
+                }
+            });
+        }
+        return result;
     }
 
     /**
@@ -80,7 +113,56 @@ public class SysNoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice
                 throw new ServiceException("显示的顶部公告只能有一个!");
             }
         }
-        return updateById(sysNotice);
+        boolean result = updateById(sysNotice);
+        // 修改弹窗点击“发送”（send=true）：保存并立即推送
+        if (Boolean.TRUE.equals(sysNotice.getSend())) {
+            long loginIdAsLong = StpUtil.getLoginIdAsLong();
+            taskExecutor.submit(() -> {
+                try {
+                    SysNotifications notifications = SysNotifications.builder()
+                            .title("公告通知【" + sysNotice.getTitle() + "】")
+                            .message(sysNotice.getContent())
+                            .businessId(sysNotice.getId())
+                            .businessType("notice")
+                            // 推送对象由公告的 notice_push 指定（null 或全空 = 全员可见）
+                            .noticePush(sysNotice.getNoticePush())
+                            .fromUserId(loginIdAsLong)
+                            .build();
+                    notificationsUtil.publish(notifications);
+                } catch (Exception e) {
+                    log.error("发送通知失败", e);
+                }
+            });
+        }
+        return result;
+    }
+
+    @Override
+    public boolean show(SysNotice sysNotice) {
+        SysNotice one = baseMapper.selectById(sysNotice.getId());
+        if(one == null) {
+            throw new ServiceException("公告不存在!");
+        }
+        if (sysNotice.getIsShow() == Constants.YES) {
+            long loginIdAsLong = StpUtil.getLoginIdAsLong();
+            taskExecutor.submit(() -> {
+                try {
+                    SysNotifications notifications = SysNotifications.builder()
+                            .title("公告通知【"+ one.getTitle()+"】")
+                            .message(one.getContent())
+                            .businessId(one.getId())
+                            .businessType("notice")
+                            // 推送对象由公告的 notice_push 指定（null 或全空 = 全员可见）
+                            .noticePush(one.getNoticePush())
+                            .fromUserId(loginIdAsLong)
+                            .build();
+                    notificationsUtil.publish(notifications);
+                } catch (Exception e) {
+                    log.error("发送通知失败", e);
+                }
+            });
+        }
+        return update(sysNotice);
     }
 
     /**

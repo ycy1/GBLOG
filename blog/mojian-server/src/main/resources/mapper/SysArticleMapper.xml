@@ -35,6 +35,7 @@
         <result property="quantity" column="quantity"/>
         <result property="readType" column="read_type"/>
         <result property="likeNum" column="likeNum"/>
+        <result property="summary" column="summary"/>
         <result property="aiDescribe" column="ai_describe"/>
         <result property="commentNum" column="commentNum"/>
         <result property="isOriginal" column="is_original"/>
@@ -72,6 +73,10 @@
         DELETE FROM sys_article_like WHERE user_id = #{userId} AND article_id = #{articleId}
     </delete>
 
+    <update id="updateLikeCount">
+        UPDATE sys_article SET like_count = GREATEST(IFNULL(like_count, 0) + #{delta}, 0) WHERE id = #{articleId}
+    </update>
+
 
     <select id="getArticleListApi" resultMap="articleResultMap">
         SELECT
@@ -85,6 +90,7 @@
             a.quantity,
             a.is_stick,
             a.create_time,
+            IFNULL(a.like_count, 0) AS likeNum,
             c.name AS categoryName,
             u.nickname,
             u.avatar
@@ -99,7 +105,7 @@
             AND a.category_id = #{categoryId}
         </if>
         <if test="keyword != null and keyword != ''">
-            AND (a.title like concat('%',#{keyword},'%') or a.summary like concat('%',#{keyword},'%'))
+            AND (a.title like concat('%',#{keyword},'%') or a.summary like concat('%',#{keyword},'%') or a.content_md like concat('%',#{keyword},'%'))
         </if>
         order by a.is_stick desc, a.create_time desc
     </select>
@@ -124,8 +130,8 @@
             c.name AS categoryName,
             u.nickname,
             u.avatar,
-            (SELECT COUNT(sc.id) FROM sys_comment sc WHERE sc.article_id = a.id) AS commentNum,
-            (SELECT COUNT(sal.id) FROM sys_article_like sal WHERE sal.article_id = a.id) AS likeNum
+            (SELECT COUNT(sc.id) FROM sys_comment sc WHERE sc.business_id = a.id) AS commentNum,
+            IFNULL(a.like_count, 0) AS likeNum
         FROM sys_article a
         LEFT JOIN sys_category c ON a.category_id = c.id
         LEFT JOIN sys_user u ON a.user_id = u.id
@@ -242,8 +248,8 @@
             a.status,
             a.create_time,
             c.name AS categoryName,
-            (SELECT COUNT(sc.id) FROM sys_comment sc WHERE sc.article_id = a.id) AS commentNum,
-            (SELECT COUNT(sal.id) FROM sys_article_like sal WHERE sal.article_id = a.id) AS likeNum
+            (SELECT COUNT(sc.id) FROM sys_comment sc WHERE sc.business_id = a.id) AS commentNum,
+            IFNULL(a.like_count, 0) AS likeNum
         FROM
             sys_article a
             LEFT JOIN sys_category c ON a.category_id = c.id

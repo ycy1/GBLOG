@@ -21,6 +21,7 @@
         FROM
         sys_tag tag
         LEFT JOIN sys_article_tag sat ON tag.id = sat.tag_id
+        WHERE tag.type = 'article'
         GROUP BY tag.id
         ORDER BY tag.sort desc
     </select>

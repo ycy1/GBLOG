@@ -31,6 +31,9 @@ public class SysTag implements Serializable {
     @ApiModelProperty(value = "名称")
     private String name;
 
+    @ApiModelProperty(value = "标签类型 article-文章 photo-照片")
+    private String type;
+
     @ApiModelProperty(value = "图标")
     private String icon;
 

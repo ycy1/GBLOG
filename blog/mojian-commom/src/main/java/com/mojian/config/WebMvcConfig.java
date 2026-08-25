@@ -83,7 +83,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
      * 配置消息转换器，确保字符串响应使用UTF-8编码
      */
     @Override
-    public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
+    public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
         // 确保 StringHttpMessageConverter 使用 UTF-8
         for (HttpMessageConverter<?> converter : converters) {
             if (converter instanceof StringHttpMessageConverter) {

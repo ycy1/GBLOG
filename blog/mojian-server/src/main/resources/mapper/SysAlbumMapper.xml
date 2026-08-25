@@ -15,4 +15,47 @@
         left join sys_photo p on a.id = p.album_id
         group by a.id order by a.sort asc,a.create_time desc
     </select>
+
+    <!-- 相册筛选公共条件（全部走 SQL） -->
+    <sql id="albumQueryFilter">
+        <where>
+            <if test="query.id != null">
+                AND a.id = #{query.id}
+            </if>
+            <if test="query.name != null and query.name != ''">
+                AND a.name LIKE CONCAT('%', #{query.name}, '%')
+            </if>
+            <if test="query.description != null and query.description != ''">
+                AND a.description = #{query.description}
+            </if>
+            <if test="query.isLock != null">
+                AND a.is_lock = #{query.isLock}
+            </if>
+            <if test="query.sort != null">
+                AND a.sort = #{query.sort}
+            </if>
+            <if test="query.createTime != null">
+                AND a.create_time = #{query.createTime}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectAlbumPage" resultType="com.mojian.entity.SysAlbum">
+        SELECT
+            a.id,
+            a.cover,
+            a.name,
+            a.description,
+            a.is_lock,
+            a.sort,
+            a.create_time,
+            COUNT(p.id) AS photoNum
+        FROM
+            sys_album a
+            LEFT JOIN sys_photo p ON a.id = p.album_id
+        <include refid="albumQueryFilter"/>
+        GROUP BY a.id, a.cover, a.name, a.description, a.is_lock, a.sort, a.create_time
+        ORDER BY
+            a.sort ASC, a.create_time DESC
+    </select>
 </mapper>

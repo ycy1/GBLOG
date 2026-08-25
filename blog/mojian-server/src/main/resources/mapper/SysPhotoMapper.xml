@@ -8,4 +8,133 @@
             #{id}
         </foreach>
     </update>
+
+    <insert id="addPhotoTagRelations">
+        INSERT INTO sys_photo_tag (photo_id, tag_id)
+        VALUES
+        <foreach item="tagId" index="index" collection="tagIds"
+                 open="" separator="," close="">
+            (#{photoId}, #{tagId})
+        </foreach>
+    </insert>
+
+    <delete id="deletePhotoTagsByPhotoIds">
+        DELETE FROM sys_photo_tag WHERE photo_id IN
+        <foreach item="id" index="index" collection="photoIds"
+                 open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="deletePhotoTagRelations">
+        DELETE FROM sys_photo_tag WHERE photo_id IN
+        <foreach collection="photoIds" item="photoId" open="(" separator="," close=")">
+            #{photoId}
+        </foreach>
+        AND tag_id IN
+        <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+            #{tagId}
+        </foreach>
+    </delete>
+
+    <insert id="addPhotoTagRelationsBatch">
+        INSERT INTO sys_photo_tag (photo_id, tag_id)
+        VALUES
+        <foreach collection="photoIds" item="photoId" separator=",">
+            <foreach collection="tagIds" item="tagId" separator=",">
+                (#{photoId}, #{tagId})
+            </foreach>
+        </foreach>
+    </insert>
+
+    <select id="selectPhotoTagsByPhotoIds" resultType="com.mojian.vo.photo.PhotoTagVo">
+        SELECT
+            pt.photo_id AS photoId,
+            t.id,
+            t.name
+        FROM
+            sys_photo_tag pt
+            LEFT JOIN sys_tag t ON pt.tag_id = t.id
+        WHERE
+            pt.photo_id IN
+        <foreach item="id" index="index" collection="photoIds"
+                 open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 照片筛选公共条件（全部走 SQL） -->
+    <sql id="photoQueryFilter">
+        <where>
+            <if test="query.id != null">
+                AND p.id = #{query.id}
+            </if>
+            <if test="query.albumId != null">
+                AND p.album_id = #{query.albumId}
+            </if>
+            <if test="query.description != null and query.description != ''">
+                AND p.description = #{query.description}
+            </if>
+            <if test="query.url != null and query.url != ''">
+                AND p.url = #{query.url}
+            </if>
+            <if test="query.sort != null">
+                AND p.sort = #{query.sort}
+            </if>
+            <if test="query.createTime != null">
+                AND p.create_time = #{query.createTime}
+            </if>
+            <if test="query.beginTime != null and query.beginTime != ''">
+                AND p.record_time &gt;= #{query.beginTime}
+            </if>
+            <if test="query.endTime != null and query.endTime != ''">
+                AND p.record_time &lt;= #{query.endTime}
+            </if>
+            <if test="query.tagId != null">
+                AND EXISTS (SELECT 1 FROM sys_photo_tag pt WHERE pt.photo_id = p.id AND pt.tag_id = #{query.tagId})
+            </if>
+            <if test="query.tagIds != null and query.tagIds.size() > 0">
+                AND EXISTS (
+                    SELECT 1 FROM sys_photo_tag pt
+                    WHERE pt.photo_id = p.id
+                    AND pt.tag_id IN
+                    <foreach collection="query.tagIds" item="tid" open="(" separator="," close=")">
+                        #{tid}
+                    </foreach>
+                )
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectPhotoPage" resultType="com.mojian.entity.SysPhoto">
+        SELECT
+            p.id,
+            p.album_id,
+            p.description,
+            p.url,
+            p.sort,
+            p.record_time,
+            p.create_time
+        FROM
+            sys_photo p
+        <include refid="photoQueryFilter"/>
+        ORDER BY
+            p.record_time DESC, p.id DESC
+    </select>
+
+    <select id="selectPhotoList" resultType="com.mojian.entity.SysPhoto">
+        SELECT
+            p.id,
+            p.album_id,
+            p.description,
+            p.url,
+            p.sort,
+            p.record_time,
+            p.create_time
+        FROM
+            sys_photo p
+        <include refid="photoQueryFilter"/>
+        ORDER BY
+            p.record_time DESC, p.id DESC
+    </select>
 </mapper>

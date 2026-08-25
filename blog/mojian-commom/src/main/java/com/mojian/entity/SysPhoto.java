@@ -10,6 +10,7 @@ import lombok.Data;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @TableName("sys_photo")
@@ -52,4 +53,24 @@ public class SysPhoto implements Serializable {
     @ApiModelProperty(value = "创建时间")
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
+
+    @ApiModelProperty(value = "照片标签（提交/回显）")
+    @TableField(exist = false)
+    private List<SysTag> tags;
+
+    @ApiModelProperty(value = "查询：按标签筛选")
+    @TableField(exist = false)
+    private Integer tagId;
+
+    @ApiModelProperty(value = "查询：按标签多选筛选")
+    @TableField(exist = false)
+    private List<Integer> tagIds;
+
+    @ApiModelProperty(value = "查询：记录时间范围-开始")
+    @TableField(exist = false)
+    private String beginTime;
+
+    @ApiModelProperty(value = "查询：记录时间范围-结束")
+    @TableField(exist = false)
+    private String endTime;
 }

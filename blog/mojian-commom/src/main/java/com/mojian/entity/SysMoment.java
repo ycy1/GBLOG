@@ -38,6 +38,9 @@ public class SysMoment implements Serializable {
     @ApiModelProperty(value = "图片")
     private String images;
 
+    @ApiModelProperty(value = "点赞数")
+    private Integer likeCount;
+
     @ApiModelProperty(value = "创建时间")
     @TableField(fill = FieldFill.INSERT)
     @JsonFormat(pattern = DateUtil.YYYY_MM_DD_HH_MM_SS, timezone = "GMT+8")

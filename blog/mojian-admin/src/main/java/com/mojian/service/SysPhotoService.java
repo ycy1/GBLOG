@@ -44,4 +44,11 @@ public interface SysPhotoService extends IService<SysPhoto> {
      */
     Object move(List<Long> ids, Long albumId);
 
+    /**
+     * 批量给照片添加标签（保留原有标签，去重后追加）
+     * @param ids 照片id列表
+     * @param tagIds 标签id列表
+     */
+    boolean setBatchTags(List<Long> ids, List<Integer> tagIds);
+
 }

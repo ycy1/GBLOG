@@ -1,6 +1,7 @@
 package com.mojian.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.mojian.vo.moment.MomentPageVo;
 import org.springframework.stereotype.Service;
 import com.mojian.mapper.SysMomentMapper;
 import com.mojian.entity.SysMoment;
@@ -18,13 +19,15 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SysMomentServiceImpl extends ServiceImpl<SysMomentMapper, SysMoment> implements SysMomentService {
 
+    private final SysMomentMapper sysMomentMapper;  // 使用自定义的mapper
     /**
      * 查询说说分页列表
      */
     @Override
-    public IPage<SysMoment> selectPage(SysMoment sysMoment) {
-        return page(PageUtil.getPage(), new LambdaQueryWrapper<SysMoment>()
-                .orderByDesc(SysMoment::getCreateTime));
+    public IPage<MomentPageVo> selectPage(SysMoment sysMoment) {
+        Object loginIdObj = StpUtil.getLoginIdDefaultNull();
+        Long userId = loginIdObj != null ? Long.valueOf(loginIdObj.toString()) : null;
+        return sysMomentMapper.selectPage(PageUtil.getPage(), userId);
     }
 
     @Override

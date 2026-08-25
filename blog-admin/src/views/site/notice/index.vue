@@ -81,7 +81,7 @@
             </div>
 
             <!-- 添加或修改对话框 -->
-            <el-dialog v-model="open" :title="title" width="1000px" append-to-body>
+            <el-dialog v-model="open" :title="title" width="1000px" append-to-body destroy-on-close>
                 <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
                     <el-form-item label="公告标题" prop="title">
                         <el-input v-model="form.title" placeholder="请输入公告标题" style="width: 60%;" />
@@ -98,14 +98,17 @@
                     </el-form-item>
                     <el-form-item label="公告内容" prop="content">
                         <div style="border: 1px solid #ccc">
-                            <WangEditor v-model="form.content" />
+                            <WangEditor v-model="form.content"/>
                         </div>
                     </el-form-item>
-                    
+                    <el-form-item label="推送对象" prop="noticePush">
+                        <NoticePushTransfer v-model="form.noticePush" />
+                    </el-form-item>
                 </el-form>
                 <template #footer>
                     <div class="dialog-footer">
-                        <el-button type="primary" @click="submitForm">确 定</el-button>
+                        <el-button type="warning" @click="submitForm('send')">发 送</el-button>
+                        <el-button type="primary" @click="submitForm('save')">确 定</el-button>
                         <el-button @click="cancel">取 消</el-button>
                     </div>
                 </template>
@@ -118,11 +121,14 @@
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
     listSysNoticeApi,
+    detailSysNoticeApi,
     deleteSysNoticeApi,
     addSysNoticeApi,
-    updateSysNoticeApi
+    updateSysNoticeApi,
+    showSysNoticeApi
 } from '@/api/site/notice'
 import WangEditor from '@/components/WangEditor/index.vue'
+import NoticePushTransfer from '@/components/NoticePushTransfer/index.vue'
 import { getDictDataByDictTypesApi } from '@/api/system/dict'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import '@wangeditor/editor/dist/css/style.css'
@@ -199,6 +205,10 @@ const reset = () => {
     form.isShow = 1
     form.position = 'right'
     form.content = ''
+    form.title = ''
+    form.noticePush = undefined
+    form.send = false
+    formRef.value?.resetFields();
 }
 
 /** 搜索按钮操作 */
@@ -228,25 +238,29 @@ const handleAdd = () => {
 /** 修改按钮操作 */
 const handleUpdate = (row: any) => {
     reset()
-    Object.assign(form, row)
-    open.value = true
-    title.value = "修改公告"
+    detailSysNoticeApi(row.id).then(response => {
+        Object.assign(form, response.data)
+        open.value = true
+        title.value = "修改公告"
+    })
 
 }
 
-/** 提交按钮 */
-const submitForm = () => {
+/** 提交按钮：mode = save 保存（新增不推送）/ send 保存并发送（新增推送） */
+const submitForm = (mode: 'save' | 'send' = 'save') => {
     formRef.value?.validate((valid: any) => {
         if (valid) {
+            // send 为瞬态字段（不入库），仅用于区分“保存并发送”
+            form.send = mode === 'send'
             if (form.id !== undefined) {
                 updateSysNoticeApi(form).then(response => {
-                    ElMessage.success("修改成功")
+                    ElMessage.success(mode === 'send' ? "修改并发送成功" : "修改成功")
                     open.value = false
                     getList()
                 })
             } else {
                 addSysNoticeApi(form).then(response => {
-                    ElMessage.success("新增成功")
+                    ElMessage.success(mode === 'send' ? "发送成功" : "新增成功")
                     open.value = false
                     getList()
                 })
@@ -299,8 +313,9 @@ const handleCurrentChange = (val: any) => {
 }
 // 切换状态
 const handleChange = (row: any) => {
-    updateSysNoticeApi({ id: row.id, isShow: row.isShow,position:row.position }).then(response => {
-        ElMessage.success("修改成功")
+    showSysNoticeApi({ id: row.id, isShow: row.isShow,position:row.position }).then(response => {
+        ElMessage.success("操作成功")
+        getList()
     }).catch(error => {
         row.isShow = !row.isShow
     })

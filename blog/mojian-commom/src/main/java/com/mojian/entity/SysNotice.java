@@ -30,6 +30,13 @@ public class SysNotice implements Serializable {
     @ApiModelProperty(value = "显示位置 （top：顶部，right:右侧）")
     private String position;
 
+    @ApiModelProperty(value = "推送对象（JSON：{\"user\":[],\"dept\":[],\"role\":[]}，null 或全空=全员可见）")
+    private String noticePush;
+
+    @ApiModelProperty(value = "是否立即发送（新增弹窗“发送”按钮触发，true 则保存后立即推送，不入库）")
+    @TableField(exist = false)
+    private Boolean send;
+
     @ApiModelProperty(value = "创建时间")
     @TableField(fill = FieldFill.INSERT)
     @JsonFormat(pattern = DateUtil.YYYY_MM_DD_HH_MM_SS, timezone = "GMT+8")

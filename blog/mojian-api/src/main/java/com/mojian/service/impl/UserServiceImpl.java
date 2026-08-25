@@ -69,4 +69,23 @@ public class UserServiceImpl implements UserService {
         return articleMapper.selectMyArticle(PageUtil.getPage(),article);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteMyArticle(Long id) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        SysArticle article = articleMapper.selectById(id);
+        if (article == null || !article.getUserId().equals(userId)) {
+            throw new RuntimeException("无权删除该文章");
+        }
+        articleMapper.deleteById(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void cancelMyLike(Long id) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        articleMapper.unLike(id, userId.intValue());
+        articleMapper.updateLikeCount(id, -1);
+    }
+
 }

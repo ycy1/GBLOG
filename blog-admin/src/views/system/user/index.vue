@@ -2,11 +2,11 @@
   <div class="app-container">
     <!-- 搜索表单 -->
     <div class="search-wrapper">
-      <el-form ref="queryFormRef" :model="queryParams" :inline="true">
-        <el-form-item label="用户名" prop="nickname">
+      <el-form ref="queryFormRef" :model="queryParams" :inline="true" class="search-form">
+        <el-form-item label="关键字" prop="keyword">
           <el-input
-            v-model="queryParams.nickname"
-            placeholder="请输入用户名"
+            v-model="queryParams.keyword"
+            placeholder="请输入用户名/昵称/账号"
             clearable
             @keyup.enter="handleQuery"
           />
@@ -15,6 +15,13 @@
           <el-select v-model="queryParams.loginType" placeholder="请选择登录方式" clearable>
             <el-option v-for="item in loginTypes" :label="item.label" :value="item.value" />
           </el-select>
+        </el-form-item>
+        <el-form-item label="所属部门">
+          <DeptSelect
+            v-model="queryParams.deptIds"
+            placeholder="请选择所属部门"
+            style="width: 220px"
+          />
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-select v-model="queryParams.status" placeholder="请选择状态" clearable>
@@ -64,6 +71,18 @@
             <el-image :src="row.avatar" style="width: 40px; height: 40px; border-radius: 5px;" />
           </template>
         </el-table-column>
+        <el-table-column label="二维码" prop="qrImg" align="center" width="90">
+          <template #default="{ row }">
+            <el-image
+              v-if="row.qrImg"
+              :src="row.qrImg"
+              style="width: 40px; height: 40px; border-radius: 4px;"
+              :preview-src-list="[row.qrImg]"
+              preview-teleported
+            />
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="昵称" align="center" prop="nickname" show-overflow-tooltip />
         <el-table-column label="登录方式" align="center" prop="ipLocation" >
           <template #default="{ row }">
@@ -74,8 +93,18 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="登录IP" align="center" prop="ip" show-overflow-tooltip />
-        <el-table-column label="登录地址" align="center" prop="ipLocation" show-overflow-tooltip />
+        <el-table-column label="部门" align="center" prop="deptNames" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span>{{ (row.deptNames || []).join(' / ') || '-' }}</span>
+          </template>
+        </el-table-column>
+        <!-- <el-table-column label="登录IP" align="center" prop="ip" show-overflow-tooltip /> -->
+        <!-- <el-table-column label="登录地址" align="center" prop="ipLocation" show-overflow-tooltip /> -->
+        <el-table-column label="地址" width="150" align="center" prop="areaCode" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span>{{ row.areaZh || resolveAreaCode(row.areaCode) || '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" align="center" width="80">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'danger'">
@@ -83,31 +112,46 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="最后登录时间" align="center" prop="lastLoginTime" width="160" />
-        <el-table-column label="创建时间" align="center" prop="createTime" width="160" />
+        <el-table-column label="最后登录时间" align="center" prop="lastLoginTime" width="160">
+          <template #default="{ row }">
+            <span>{{ validate.formatTime(row.lastLoginTime, 'YYYY-MM-DD HH') || '-' }}</span>
+          </template>
+        </el-table-column>
+        <!-- <el-table-column label="创建时间" align="center" prop="createTime" width="160" /> -->
         <el-table-column label="操作" align="center" width="280" fixed="right">
           <template #default="scope">
-            <el-button
-              v-permission="['sys:user:update']"
-              type="primary"
-              link
-              icon="Edit"
-              @click="handleUpdate(scope.row)"
-            >修改</el-button>
-            <el-button
-            v-permission="['sys:user:reset']"
-              type="info"
-              link
-              icon="Key"
-              @click="handleResetPwd(scope.row)"
-            >重置密码</el-button>
-            <el-button
-              v-permission="['sys:user:delete']"
-              type="danger"
-              link
-              icon="Delete"
-              @click="handleDelete(scope.row)"
-            >删除</el-button>
+            <TableMoreActions
+              :actions="[
+                {
+                  label: '修改',
+                  icon: 'Edit',
+                  disabled: !hasPermission('sys:user:update'),
+                  command: { type: 'edit', row: scope.row }
+                },
+                {
+                  label: '二维码',
+                  type: 'warning',
+                  icon: 'Link',
+                  disabled: !hasPermission('sys:user:update'),
+                  command: { type: 'qr', row: scope.row }
+                },
+                {
+                  label: '重置密码',
+                  type: 'info',
+                  icon: 'Key',
+                  disabled: !hasPermission('sys:user:reset'),
+                  command: { type: 'resetPwd', row: scope.row }
+                },
+                {
+                  label: '删除',
+                  type: 'danger',
+                  icon: 'Delete',
+                  disabled: !hasPermission('sys:user:delete'),
+                  command: { type: 'delete', row: scope.row }
+                }
+              ]"
+              @command="handleActionCommand"
+            />
           </template>
         </el-table-column>
       </el-table>
@@ -228,6 +272,20 @@
           </el-select>
         </el-form-item>
 
+        <el-form-item label="部门" prop="deptIds">
+          <DeptSelect v-model="userForm.deptIds" style="width: 100%" />
+        </el-form-item>
+
+        <el-form-item label="地址" prop="areaCode">
+          <el-cascader
+            v-model="areaCodeArr"
+            :options="colPickerData"
+            :props="{ label: 'text', value: 'value', children: 'children' }"
+            style="width: 100%"
+            clearable
+            placeholder="请选择所在地区"
+          />
+        </el-form-item>
         <el-form-item label="状态">
           <el-radio-group v-model="userForm.status">
             <el-radio :value="1">启用</el-radio>
@@ -285,6 +343,32 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 二维码弹窗 -->
+    <el-dialog
+      title="用户二维码"
+      v-model="qrDialog.visible"
+      width="360px"
+      append-to-body
+      destroy-on-close
+    >
+      <div style="text-align: center;">
+        <el-image
+          v-if="qrDialog.url"
+          :src="qrDialog.url"
+          style="width: 240px; height: 240px; border: 1px solid #eee; border-radius: 8px;"
+          fit="contain"
+        />
+        <el-empty v-else description="正在生成…" :image-size="60" />
+        <p v-if="qrDialog.nickname" style="color: #666; margin-top: 8px;">{{ qrDialog.nickname }}</p>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="regenerateQr">重新生成</el-button>
+          <el-button @click="qrDialog.visible = false">关 闭</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -296,19 +380,33 @@ import {
   createUserApi,
   updateUserApi,
   deleteUserApi,
-  resetPasswordApi
+  resetPasswordApi,
+  generateUserQrApi
 } from '@/api/system/user'
 import { getAllRoleList } from '@/api/system/role'
 import { getDictDataByDictTypesApi } from '@/api/system/dict'
 import ButtonGroup from '@/components/ButtonGroup/index.vue'
+import TableMoreActions from '@/components/TableMoreActions/index.vue'
+import DeptSelect from '@/components/DeptSelect/index.vue'
+import { useUserStore } from '@/store/modules/user'
+import validate from '@/utils/validate'
+
+const userStore = useUserStore()
+const permissions = computed(() => userStore.user.permissions || [])
+
+// 权限检查
+const hasPermission = (permission: string): boolean => {
+  return permissions.value.includes(permission)
+}
 
 // 查询参数
 const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
-  nickname: '',
+  keyword: '',
   status: '',
-  loginType: ''
+  loginType: '',
+  deptIds: [] as number[]
 })
 
 const loading = ref(false)
@@ -331,6 +429,10 @@ const dialog = reactive({
 // 角色选项
 const roleOptions = ref<any[]>([])
 
+// 省市区数据
+const { colPickerData, resolveAreaCode } = useColPickerData()
+const areaCodeArr = ref<string[]>([])
+
 // 表单数据
 const userForm = reactive({
   id: undefined,
@@ -339,20 +441,23 @@ const userForm = reactive({
   password: null,
   mobile: '',
   email: '',
+  areaCode: '',
+  areaZh: '',
   sex: 0,
   status: 1,
   ip: undefined,
   ipLocation: undefined,
   lastLoginTime: undefined,
   createTime: undefined,
-  roleIds: [] as number[]
+  roleIds: [] as number[],
+  deptIds: [] as number[]
 })
 
 // 表单校验规则
 const rules = reactive<FormRules>({
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' }
+    { min: 3, max: 50, message: '长度在 3 到 20 个字符', trigger: 'blur' }
   ],
   nickname: [
     { required: true, message: '请输入昵称', trigger: 'blur' }
@@ -368,7 +473,15 @@ const rules = reactive<FormRules>({
     { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
   ],
   roleIds: [
-    { required: true, message: '请选择角色', trigger: 'change' }
+    { required: true, message: '请选择角色', trigger: 'change',validator: (rule, value, callback) => {
+      if (userForm.username === 'admin') {
+        callback()
+      } else if (value.length === 0) {
+        callback(new Error('请选择角色'))
+      } else {
+        callback()
+      }
+    } }
   ],
   sex: [
     { required: true, message: '请选择性别', trigger: 'change' }
@@ -411,13 +524,25 @@ const resetPwdRules = reactive<FormRules>({
 
 const resetPwdFormRef = ref<FormInstance>()
 
+// 二维码弹窗
+const qrDialog = reactive({
+  id: undefined,
+  visible: false,
+  url: '',
+  nickname: ''
+})
+
 const loginTypes = ref<any>([])
 
 // 获取用户列表
 const getList = async () => {
   loading.value = true
   try {
-    const { data } = await getUserListApi(queryParams)
+    const params: any = { ...queryParams }
+    if (params.deptIds && params.deptIds.length) {
+      params.deptIds = params.deptIds.join(',')
+    }
+    const { data } = await getUserListApi(params)
     userList.value = data.records
     total.value = data.total
   } catch (error) {
@@ -458,6 +583,7 @@ const handleQuery = () => {
 // 重置查询
 const resetQuery = () => {
   queryFormRef.value?.resetFields()
+  queryParams.deptIds = []
   handleQuery()
 }
 
@@ -478,16 +604,26 @@ const handleAdd = () => {
   userForm.ipLocation = undefined
   userForm.lastLoginTime = undefined
   userForm.createTime = undefined
+  userForm.areaCode = ''
+  userForm.areaZh = ''
   userForm.roleIds = []
+  userForm.deptIds = []
+  areaCodeArr.value = []
 }
 
 // 修改用户
 const handleUpdate = (row: any) => {
+  Object.assign(userForm, row)
+  if(row.roles?.length > 0) {
+    userForm.roleIds  = row.roles[0].split(',').map((item: string) => parseInt(item))
+  }
+  userForm.deptIds = row.deptIds || []
+  userForm.password = null
+  areaCodeArr.value = (row.areaCode || '').split(',').filter(Boolean)
   dialog.type = 'edit'
   dialog.title = '修改用户'
   dialog.visible = true
-  Object.assign(userForm, row)
-  userForm.password = null
+
 }
 
 // 提交表单
@@ -498,7 +634,9 @@ const submitForm = async () => {
     if (valid) {
       submitLoading.value = true
       try {
-        const data = {user: userForm, roleIds: userForm.roleIds}
+        userForm.areaCode = areaCodeArr.value.join(',')
+        userForm.areaZh = resolveAreaCode(userForm.areaCode)
+        const data = {user: userForm, roleIds: userForm.roleIds, deptIds: userForm.deptIds}
         if (dialog.type === 'add') {
           await createUserApi(data)
           ElMessage.success('新增成功')
@@ -532,12 +670,63 @@ const handleDelete = (row: any) => {
   })
 }
 
+// 操作命令分发
+const handleActionCommand = async (action: any) => {
+  const { type, row } = action.command
+  switch (type) {
+    case 'edit':
+      handleUpdate(row)
+      break
+    case 'qr':
+      handleGenerateQr(row)
+      break
+    case 'resetPwd':
+      handleResetPwd(row)
+      break
+    case 'delete':
+      handleDelete(row)
+      break
+  }
+}
+
 // 修改重置密码方法
 const handleResetPwd = (row: any) => {
   resetPwdDialog.id = row.id
   resetPwdDialog.visible = true
   resetPwdForm.password = ''
   resetPwdForm.confirmPassword = ''
+}
+
+// 生成用户二维码
+const handleGenerateQr = async (row: any) => {
+  qrDialog.id = row.id
+  qrDialog.nickname = row.nickname || row.username || ''
+  qrDialog.url = row.qrImg || ''
+  qrDialog.visible = true
+  if (row.qrImg) {
+    // 已有二维码直接展示，可在弹窗内重新生成
+    return
+  }
+  try {
+    const { data } = await generateUserQrApi(row.id)
+    qrDialog.url = data
+    ElMessage.success('二维码生成成功')
+    getList()
+  } catch (error) {
+  }
+}
+
+// 重新生成二维码
+const regenerateQr = async () => {
+  if (!qrDialog.id) return
+  qrDialog.url = ''
+  try {
+    const { data } = await generateUserQrApi(qrDialog.id)
+    qrDialog.url = data
+    ElMessage.success('二维码已重新生成')
+    getList()
+  } catch (error) {
+  }
 }
 
 // 提交重置密码
@@ -605,3 +794,34 @@ onMounted(() => {
   getDicts()
 })
 </script>
+
+<style scoped lang="scss">
+/* 筛选表单保持在一行 */
+.search-form {
+  display: flex;
+  flex-wrap: nowrap;
+
+  :deep(.el-form-item) {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-right: 16px;
+
+    &:last-child {
+      flex: 0 0 auto;
+      margin-right: 0;
+    }
+  }
+
+  :deep(.el-form-item .el-form-item__content) {
+    min-width: 0;
+  }
+
+  :deep(.el-form-item .el-input),
+  :deep(.el-form-item .el-select),
+  :deep(.el-form-item .el-tree-select),
+  :deep(.el-form-item .dept-select),
+  :deep(.el-form-item .user-select) {
+    width: 100% !important;
+  }
+}
+</style>

@@ -24,11 +24,17 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 // 创建一个与props.modelValue的值同步的ref
 const modelVar = ref(props.modelValue)
+console.log('modelVar.value:', modelVar.value);
 
 watch(() => modelVar.value, (newVal) => {
-    // console.log('props.modelValue changed:', newVal)
+  console.log('props.modelValue changed:', newVal)
   modelVar.value = newVal
   emit('update:modelValue', newVal)
+})
+
+onBeforeUnmount(() => {
+  console.log('组件卸载前，销毁编辑器实例')
+  editorRef.value?.destroy()
 })
 
 const editorRef = shallowRef()
@@ -122,7 +128,7 @@ const editorConfig = {
 // 富文本编辑器创建完成
 const handleCreated = (editor:any) => {
   editorRef.value = editor // 记录 editor 实例，重要！
-//   console.log('editorRef', editorRef.value)
+  console.log('editorRef handleCreated', editorRef.value)
 //   editor.on('change', () => {
 //     console.log('内容变化:', editor.getHtml())
 //     emit('update:modelValue',editor.getHtml())

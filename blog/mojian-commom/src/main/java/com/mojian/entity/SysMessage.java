@@ -19,7 +19,7 @@ public class SysMessage implements Serializable {
 
     @TableId(type = IdType.AUTO)
     @ApiModelProperty(value = "ID")
-    private Integer id;
+    private Long id;
 
     @ApiModelProperty(value = "用户昵称")
     private String nickname;

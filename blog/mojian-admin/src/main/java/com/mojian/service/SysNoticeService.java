@@ -30,6 +30,11 @@ public interface SysNoticeService extends IService<SysNotice> {
     boolean update(SysNotice sysNotice);
 
     /**
+     * 显示公告
+     */
+    boolean show(SysNotice sysNotice);
+
+    /**
      * 批量删除公告
      */
     boolean deleteByIds(List<Long> ids);

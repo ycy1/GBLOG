@@ -49,5 +49,12 @@ public interface NotificationsService {
      */
     Boolean getMyIsUnread();
 
+    /**
+     * 查询消息详情
+     * @param id
+     * @return
+     */
+    NotificationsListVo getById(Long id);
+
 
 }

@@ -113,4 +113,11 @@ public class SysPhotoController {
     public Result<Object> move(@PathVariable List<Long> ids, @RequestParam Long albumId) {
         return Result.success(sysPhotoService.move(ids,albumId));
     }
+
+    @PutMapping("/setTags/{ids}")
+    @SaCheckPermission("sys:photo:update")
+    @ApiOperation(value = "批量设置照片标签")
+    public Result<Object> setTags(@PathVariable List<Long> ids, @RequestBody List<Integer> tagIds) {
+        return Result.success(sysPhotoService.setBatchTags(ids, tagIds));
+    }
 }

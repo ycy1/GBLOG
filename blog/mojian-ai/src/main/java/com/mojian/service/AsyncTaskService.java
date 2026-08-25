@@ -5,6 +5,7 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -82,6 +83,12 @@ public class AsyncTaskService {
     @Autowired
     @Qualifier("ollamaChatMode")
     public ChatLanguageModel ollamaModel;
+
+
+    @Autowired
+    @Qualifier("deepseekModel")
+    private ChatLanguageModel deepseekModel;
+
     public void submitTasksByChat(String requestId, String prompt) {
         CountDownLatch latch = new CountDownLatch(1);  // 4个任务
 
@@ -91,7 +98,7 @@ public class AsyncTaskService {
                     SystemMessage.from("你是一个文章简化提取助手"),
                     UserMessage.from("请将下面这段内容进行简单的总结，并返回总结结果\n\n" + prompt)
             );
-            ChatResponse response = ollamaModel.chat(messages);
+            ChatResponse response = deepseekModel.chat(messages);
             System.out.println("response: " + response);
         });
         latch.countDown();

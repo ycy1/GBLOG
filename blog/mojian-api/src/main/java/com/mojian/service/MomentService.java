@@ -11,4 +11,17 @@ import com.mojian.vo.moment.MomentPageVo;
 public interface MomentService {
     IPage<MomentPageVo> getMomentList();
 
+    MomentPageVo getMomentDetail(Long id);
+
+    Boolean likeMoment(Long momentId);
+
+    /**
+     * 获取我的动态列表
+     */
+    IPage<MomentPageVo> getMyMomentList();
+
+    /**
+     * 删除我的动态
+     */
+    void deleteMyMoment(Long id);
 }

@@ -10,11 +10,28 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
     password: 03171122991j!
+    hikari:
+      # 最小空闲连接数
+      minimum-idle: 5
+      # 最大连接池大小
+      maximum-pool-size: 20
+      # 连接超时时间(毫秒)
+      connection-timeout: 30000
+      # 空闲连接超时时间(毫秒),默认600000(10分钟)
+      idle-timeout: 600000
+      # 连接最大生命周期(毫秒),建议设置为30分钟,必须小于MySQL的wait_timeout
+      max-lifetime: 1800000
+      # 连接测试查询
+      connection-test-query: SELECT 1
+      # 是否自动提交
+      auto-commit: true
+      # 连接池名称
+      pool-name: HikariPool-1
   redis:
     host: 182.92.85.80
     password: 03171122991j!
     port: 6379
-    timeout: 3000
+    timeout: 5000
     database: 8
 
 #==============================knife4j配置==============================
@@ -86,7 +103,7 @@ mail:
     host: smtp.qq.com
     port: 465
     email: jxj1014@qq.com
-    password: uumicjatypuedcej  # 邮箱授权码
+    password: zzysgagkatygbbgf  # 邮箱授权码
 
 #============================第三方登录配置信息===================================
 qq:

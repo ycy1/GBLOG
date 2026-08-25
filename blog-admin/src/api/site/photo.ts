@@ -66,5 +66,16 @@ export function movePhotoApi(data: { photoIds: number[], albumId: number }) {
     })
 }
 
+/**
+ * 批量给照片添加标签（保留原有标签，去重后追加）
+ */
+export function setPhotoTagsApi(photoIds: number[], tagIds: number[]) {
+    return request({
+        url: '/sys/photo/setTags/' + photoIds,
+        method: 'put',
+        data: tagIds
+    })
+}
+
 
 

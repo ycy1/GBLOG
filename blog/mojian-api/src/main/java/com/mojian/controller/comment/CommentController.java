@@ -22,8 +22,8 @@ public class CommentController {
 
     @GetMapping("/list")
     @ApiOperation(value = "获取文章评论列表")
-    public Result<IPage<CommentListVo>> getComments(Integer articleId,String sortType) {
-        return Result.success(commentService.getComments(articleId,sortType));
+    public Result<IPage<CommentListVo>> getComments(Integer businessId,String sortType) {
+        return Result.success(commentService.getComments(businessId,sortType,null));
     }
 
     @SaCheckLogin

@@ -33,6 +33,9 @@ public class SysCommentVO {
     @ApiModelProperty(value = "文章标题")
     private String articleTitle;
 
+    @ApiModelProperty(value = "评论类型 1-文章 2-动态")
+    private Integer commentType;
+
     @ApiModelProperty(value = "评论内容")
     private String content;
 

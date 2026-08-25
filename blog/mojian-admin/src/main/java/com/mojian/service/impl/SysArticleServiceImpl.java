@@ -162,9 +162,10 @@ public class SysArticleServiceImpl extends ServiceImpl<SysArticleMapper, SysArti
             List<Integer> tagIds = new ArrayList<>();
             tags.forEach(item ->{
                 String tag = item.text();
-                SysTag result = sysTagMapper.selectOne(new LambdaQueryWrapper<SysTag>().eq(SysTag::getName,tag ));
+                SysTag result = sysTagMapper.selectOne(new LambdaQueryWrapper<SysTag>()
+                        .eq(SysTag::getName, tag).eq(SysTag::getType, "article"));
                 if (result == null){
-                    result = SysTag.builder().name(tag).build();
+                    result = SysTag.builder().name(tag).type("article").build();
                     sysTagMapper.insert(result);
                 }
                 tagIds.add(result.getId());
@@ -192,9 +193,10 @@ public class SysArticleServiceImpl extends ServiceImpl<SysArticleMapper, SysArti
         //添加标签
         List<Integer> tagIds = new ArrayList<>();
         for (String tag : sysArticle.getTags()) {
-            SysTag sysTag = sysTagMapper.selectOne(new LambdaQueryWrapper<SysTag>().eq(SysTag::getName, tag));
+            SysTag sysTag = sysTagMapper.selectOne(new LambdaQueryWrapper<SysTag>()
+                    .eq(SysTag::getName, tag).eq(SysTag::getType, "article"));
             if (sysTag == null) {
-                sysTag = SysTag.builder().name(tag).build();
+                sysTag = SysTag.builder().name(tag).type("article").build();
                 sysTagMapper.insert(sysTag);
             }
             tagIds.add(sysTag.getId());
