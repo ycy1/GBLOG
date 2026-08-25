@@ -12,6 +12,7 @@
     "@element-plus/icons-vue": "^2.1.0",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@types/js-cookie": "^3.0.6",
+    "@vant/area-data": "^2.0.0",
     "@wangeditor/editor": "^5.1.23",
     "@wangeditor/editor-for-vue": "^5.1.12",
     "axios": "^1.3.4",

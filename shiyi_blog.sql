@@ -376,6 +376,17 @@ CREATE TABLE `sys_article_tag`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 1669 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文章标签关联表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
+-- Table structure for sys_photo_tag
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_photo_tag`;
+CREATE TABLE `sys_photo_tag`  (
+  `id` int(0) NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `photo_id` int(0) NOT NULL COMMENT '照片id',
+  `tag_id` int(0) NOT NULL COMMENT '标签id',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '照片标签关联表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
 -- Table structure for sys_category
 -- ----------------------------
 DROP TABLE IF EXISTS `sys_category`;
@@ -395,10 +406,11 @@ CREATE TABLE `sys_category`  (
 DROP TABLE IF EXISTS `sys_comment`;
 CREATE TABLE `sys_comment`  (
   `id` int(0) NOT NULL AUTO_INCREMENT COMMENT '评论主键ID，自增唯一标识',
-  `article_id` int(0) NOT NULL COMMENT '关联的文章ID，表明该评论所属的文章',
+  `business_id` int(0) NOT NULL COMMENT '关联的业务ID（文章/动态ID），表明该评论所属的业务',
   `user_id` int(0) NOT NULL COMMENT '发表评论的用户ID',
   `reply_user_id` int(0) NULL DEFAULT NULL COMMENT '回复人id',
   `parent_id` int(0) NULL DEFAULT NULL COMMENT '父评论ID，用于实现回复评论的层级结构，若为顶级评论则为NULL',
+  `comment_type` tinyint(1) NULL DEFAULT 1 COMMENT '评论类型 1-文章 2-动态',
   `content` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '评论内容，使用utf8mb4字符集以支持更多字符类型',
   `like_count` int(0) NULL DEFAULT 0 COMMENT '点赞数，记录该评论获得的点赞数量',
   `is_stick` int(0) NULL DEFAULT 0 COMMENT '是否置顶',
@@ -413,6 +425,21 @@ CREATE TABLE `sys_comment`  (
   INDEX `idx_user_id`(`user_id`) USING BTREE,
   INDEX `idx_parent_id`(`parent_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 32 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '评论' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for sys_comment_like
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_comment_like`;
+CREATE TABLE `sys_comment_like`  (
+  `id` bigint(0) NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `comment_id` int(0) NOT NULL COMMENT '评论ID',
+  `user_id` int(0) NOT NULL COMMENT '用户ID',
+  `comment_type` tinyint(1) NULL DEFAULT 1 COMMENT '评论类型 1-文章 2-动态',
+  `create_time` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_comment_id`(`comment_id`) USING BTREE,
+  INDEX `idx_user_id`(`user_id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '评论点赞' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_config
@@ -732,12 +759,16 @@ DROP TABLE IF EXISTS `sys_tag`;
 CREATE TABLE `sys_tag`  (
   `id` int(0) NOT NULL AUTO_INCREMENT COMMENT '主键',
   `name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '名称',
+  `type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'article' COMMENT '标签类型 article-文章 photo-照片',
   `icon` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT 'tag' COMMENT '阿里巴巴矢量图标',
   `sort` int(0) NULL DEFAULT NULL COMMENT '排序',
   `create_time` datetime(0) NULL DEFAULT NULL COMMENT '创建时间',
   `update_time` datetime(0) NULL DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 104 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '标签表' ROW_FORMAT = Dynamic;
+
+-- 为已存在的存量数据补充 type 字段（全部默认为文章标签）
+ALTER TABLE `sys_tag` ADD COLUMN `type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'article' COMMENT '标签类型 article-文章 photo-照片' AFTER `name`;
 
 -- ----------------------------
 -- Table structure for sys_user
@@ -760,6 +791,7 @@ CREATE TABLE `sys_user`  (
   `browser` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '浏览器',
   `nickname` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '昵称',
   `avatar` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '头像',
+  `back_image` varchar(500) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '背景图',
   `mobile` varchar(15) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '手机号',
   `email` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '邮箱',
   `login_type` varchar(20) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '登录方式',
@@ -814,5 +846,14 @@ CREATE TABLE `sys_web_config`  (
   `open_lantern` int(0) NULL DEFAULT NULL COMMENT '开启灯笼',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '网站配置表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Migration: v3.6 - comment_type support
+-- ----------------------------
+-- For existing databases, run:
+-- ALTER TABLE `sys_comment` CHANGE COLUMN `article_id` `business_id` int(0) NOT NULL COMMENT '关联的业务ID（文章/动态ID）' AFTER `id`;
+-- ALTER TABLE `sys_comment` ADD COLUMN `comment_type` tinyint(1) NULL DEFAULT 1 COMMENT '评论类型 1-文章 2-动态' AFTER `parent_id`;
+-- ALTER TABLE `sys_comment_like` ADD COLUMN `comment_type` tinyint(1) NULL DEFAULT 1 COMMENT '评论类型 1-文章 2-动态' AFTER `user_id`;
+-- ALTER TABLE `sys_user` ADD COLUMN `back_image` varchar(500) NULL DEFAULT NULL COMMENT '背景图' AFTER `avatar`;
 
 SET FOREIGN_KEY_CHECKS = 1;
