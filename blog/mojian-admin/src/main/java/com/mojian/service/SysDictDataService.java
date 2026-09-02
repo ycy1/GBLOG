@@ -39,4 +39,9 @@ public interface SysDictDataService extends IService<SysDictData> {
      * @return
      */
     List<SysDictData> selectDataByDictTypeCache(String dictType);
+    /**
+     * 刷新字典缓存：删除 Redis 中的缓存并重新加载
+     * @param dictTypes 字典类型集合
+     */
+    void refreshDictDataCache(List<String> dictTypes);
 }

@@ -73,6 +73,7 @@
             u.sex,
             u.area_code,
             u.area_zh,
+            u.user_tags,
             u.login_type,
             -- 部门信息在 SQL 层聚合：JSON_ARRAYAGG(DISTINCT) 去重，映射回 deptIds/deptNames
             (SELECT GROUP_CONCAT(DISTINCT du.dept_id) FROM sys_dept_user du WHERE du.user_id = u.id) AS dept_ids,
@@ -112,6 +113,13 @@
                     where exdu.user_id = u.id
                     and exdu.dept_id = #{sysUser.excludeDeptId}
                 )
+            </if>
+            <!-- 按 ID 列表过滤（导出勾选用户时传入） -->
+            <if test="sysUser.ids != null and sysUser.ids.size() > 0">
+                and u.id in
+                <foreach collection="sysUser.ids" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
             </if>
         </where>
         GROUP BY u.id

@@ -3,6 +3,7 @@ package com.mojian.service.impl;
 import com.mojian.common.Constants;
 import com.mojian.entity.SysDict;
 import com.mojian.mapper.SysDictMapper;
+import com.mojian.service.SysDictDataCommService;
 import com.mojian.service.SysDictDataService;
 import com.mojian.utils.PageUtil;
 import com.mojian.entity.SysDictData;
@@ -11,7 +12,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.mojian.utils.RedisUtil;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
@@ -91,5 +91,17 @@ public class SysDictDataServiceImpl extends ServiceImpl<SysDictDataMapper, SysDi
             sysDictData = (List<SysDictData>) redisUtil.get(dictType);
         }
         return sysDictData;
+    }
+
+    @Override
+    public void refreshDictDataCache(List<String> dictTypes) {
+        if (dictTypes == null || dictTypes.isEmpty()) {
+            return;
+        }
+        for (String dictType : dictTypes) {
+            // 删除旧缓存，重新查询数据库并回填
+            redisUtil.delete(dictType);
+            selectDataByDictTypeCache(dictType);
+        }
     }
 }

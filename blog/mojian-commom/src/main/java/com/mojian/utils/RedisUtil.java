@@ -172,6 +172,19 @@ public class RedisUtil {
     public List<Object> lRange(String key, long start, long end) {
         return redisTemplate.opsForList().range(key, start, end);
     }
+    /**
+     * List结构中获取属性size
+     */
+    public Long lSize(String key) {
+        return redisTemplate.opsForList().size(key);
+    }
+
+    /**
+     * List结构中删除前N条数据
+     */
+    public void lTrim(String key, long count) {
+        redisTemplate.opsForList().trim(key, 0, count);
+    }
 
     /**
      * Set结构添加属性

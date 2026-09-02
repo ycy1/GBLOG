@@ -46,6 +46,13 @@
               :disabled="selectedIds.length === 0"
               @click="handleBatchDelete"
             >批量删除</el-button>
+            <el-button
+              v-permission="['sys:dict:update']"
+              type="warning"
+              icon="RefreshRight"
+              :disabled="selectedIds.length === 0"
+              @click="handleBatchRefreshCache"
+            >更新缓存</el-button>
           </ButtonGroup>
         </div>
       </template>
@@ -59,7 +66,7 @@
       >
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="字典名称" prop="name" align="center"/>
-        <el-table-column label="字典类型" prop="type" align="center">
+        <el-table-column label="字典code" prop="type" align="center">
           <template #default="{ row }">
             <el-tag type="warning">
               {{ row.type }}
@@ -74,30 +81,45 @@
           </template>
         </el-table-column>
         <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
-        <el-table-column label="创建时间" align="center" prop="createTime" width="200" />
-        <el-table-column label="操作" width="250" align="center">
+        <el-table-column label="创建时间" align="center" prop="createTime" width="200">
           <template #default="{ row }">
-            <el-button icon="List" type="success" link @click="handleData(row)">
-              字典数据
-            </el-button>
-            <el-button
-              v-permission="['sys:dict:update']"
-              type="primary"
-              link
-              icon="Edit"
-              @click="handleEdit(row)"
-            >
-              修改
-            </el-button>
-            <el-button 
-              v-permission="['sys:dict:delete']"
-              type="danger"
-              link
-              icon="Delete"
-              @click="handleDelete(row)"
-            >
-              删除
-            </el-button>
+            {{ validate.formatTime(row.createTime, 'YYYY-MM-DD') }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="320" align="center">
+          <template #default="scope">
+            <TableMoreActions
+              :actions="[
+                {
+                  label: '字典数据',
+                  type: 'success',
+                  icon: 'List',
+                  command: { type: 'data', row: scope.row }
+                },
+                {
+                  label: '更新缓存',
+                  type: 'warning',
+                  icon: 'RefreshRight',
+                  disabled: !hasPermission('sys:dict:update'),
+                  command: { type: 'refresh', row: scope.row }
+                },
+                {
+                  label: '修改',
+                  type: 'primary',
+                  icon: 'Edit',
+                  disabled: !hasPermission('sys:dict:update'),
+                  command: { type: 'edit', row: scope.row }
+                },
+                {
+                  label: '删除',
+                  type: 'danger',
+                  icon: 'Delete',
+                  disabled: !hasPermission('sys:dict:delete'),
+                  command: { type: 'delete', row: scope.row }
+                }
+              ]"
+              @command="handleActionCommand"
+            />
           </template>
         </el-table-column>
       </el-table>
@@ -133,8 +155,8 @@
         <el-form-item label="字典名称" prop="name">
           <el-input v-model="dictForm.name" placeholder="请输入字典名称" />
         </el-form-item>
-        <el-form-item label="字典类型" prop="type">
-          <el-input :disabled="dialogType === 'edit'" v-model="dictForm.type" placeholder="请输入字典类型" />
+        <el-form-item label="字典code" prop="type">
+          <el-input :disabled="dialogType === 'edit'" v-model="dictForm.type" placeholder="请输入字典code" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="dictForm.status">
@@ -181,10 +203,23 @@ import {
   getDictListApi,
   addDictApi,
   updateDictApi,
-  deleteDictApi
+  deleteDictApi,
+  refreshDictCacheApi
 } from '@/api/system/dict'
 import DictData from './components/DictData.vue'
 import ButtonGroup from '@/components/ButtonGroup/index.vue'
+import TableMoreActions from '@/components/TableMoreActions/index.vue'
+import { useUserStore } from '@/store/modules/user'
+
+import validate from '@/utils/validate'
+
+const userStore = useUserStore()
+const permissions = computed(() => userStore.user.permissions || [])
+
+// 权限检查
+const hasPermission = (permission: string): boolean => {
+  return permissions.value.includes(permission)
+}
 
 const loading = ref(false)
 const total = ref(0)
@@ -217,7 +252,7 @@ const rules = {
     { required: true, message: '请输入字典名称', trigger: 'blur' }
   ],
   type: [
-    { required: true, message: '请输入字典类型', trigger: 'blur' }
+    { required: true, message: '请输入字典code', trigger: 'blur' }
   ],
   status: [
     { required: true, message: '请选择状态', trigger: 'change' }
@@ -370,6 +405,50 @@ const handleBatchDelete = () => {
     } catch (error) {
     }
   })
+}
+
+// 刷新单个字典缓存
+const handleRefreshCache = async (row: any) => {
+  try {
+    await refreshDictCacheApi([row.type])
+    ElMessage.success(`「${row.name}」缓存已更新`)
+  } catch (error) {
+  }
+}
+
+// 批量刷新字典缓存
+const handleBatchRefreshCache = async () => {
+  if (selectedIds.value.length === 0) {
+    ElMessage.warning('请选择要更新的记录')
+    return
+  }
+  const types = dictList.value
+    .filter(item => selectedIds.value.includes(item.id))
+    .map(item => item.type)
+  try {
+    await refreshDictCacheApi(types)
+    ElMessage.success('缓存更新成功')
+  } catch (error) {
+  }
+}
+
+// 操作命令分发
+const handleActionCommand = (action: any) => {
+  const { type, row } = action.command
+  switch (type) {
+    case 'data':
+      handleData(row)
+      break
+    case 'refresh':
+      handleRefreshCache(row)
+      break
+    case 'edit':
+      handleEdit(row)
+      break
+    case 'delete':
+      handleDelete(row)
+      break
+  }
 }
 
 // 初始化

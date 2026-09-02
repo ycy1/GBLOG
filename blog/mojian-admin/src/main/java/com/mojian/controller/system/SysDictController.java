@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.mojian.annotation.OperationLogger;
 import com.mojian.common.Result;
 import com.mojian.entity.SysDict;
+import com.mojian.service.SysDictDataCommService;
+import com.mojian.service.SysDictDataService;
 import com.mojian.service.SysDictService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -20,6 +22,8 @@ import java.util.List;
 public class SysDictController {
 
     private final SysDictService sysDictService;
+
+    private final SysDictDataService sysDictDataService;
 
     @GetMapping
     @ApiOperation(value = "获取字典列表")
@@ -52,6 +56,15 @@ public class SysDictController {
     @SaCheckPermission("sys:dict:delete")
     public Result<Void> delete(@PathVariable List<Long> ids) {
         sysDictService.removeBatchByIds(ids);
+        return Result.success();
+    }
+
+    @PutMapping("/refreshCache")
+    @ApiOperation(value = "刷新字典缓存")
+    @OperationLogger(value = "刷新字典缓存")
+    @SaCheckPermission("sys:dict:update")
+    public Result<Void> refreshCache(@RequestBody List<String> dictTypes) {
+        sysDictDataService.refreshDictDataCache(dictTypes);
         return Result.success();
     }
 }

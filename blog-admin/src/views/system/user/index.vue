@@ -54,6 +54,19 @@
               :disabled="selectedIds.length === 0"
               @click="handleBatchDelete"
             >批量删除</el-button>
+            <el-button
+              type="success"
+              icon="Upload"
+              v-permission="['sys:user:import']"
+              @click="openImportDialog"
+            >导入</el-button>
+            <el-button
+              type="warning"
+              icon="Download"
+              v-permission="['sys:user:export']"
+              :loading="exportLoading"
+              @click="handleExport"
+            >导出</el-button>
           </ButtonGroup>
         </div>
       </template>
@@ -369,6 +382,42 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 导入用户弹窗 -->
+    <el-dialog
+      title="导入用户"
+      v-model="importDialog.visible"
+      width="480px"
+      append-to-body
+      destroy-on-close
+      class="custom-dialog"
+      @closed="resetImport"
+    >
+      <el-upload
+        ref="importUploadRef"
+        drag
+        :auto-upload="false"
+        :limit="1"
+        accept=".xlsx,.xls"
+        :on-change="handleFileChange"
+        :on-remove="handleFileRemove"
+        :on-exceed="handleExceed"
+      >
+        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+        <div class="el-upload__text">将文件拖到此处，或<em>点击选择文件</em></div>
+        <template #tip>
+          <div class="el-upload__tip">
+            支持 .xlsx / .xls 格式的 Excel 文件，可先「导出用户」获取模板。
+          </div>
+        </template>
+      </el-upload>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="importDialog.visible = false">取 消</el-button>
+          <el-button type="primary" :loading="importLoading" :disabled="!importFile" @click="submitImport">开始导入</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -381,8 +430,11 @@ import {
   updateUserApi,
   deleteUserApi,
   resetPasswordApi,
-  generateUserQrApi
+  generateUserQrApi,
+  exportUserApi,
+  importUserApi
 } from '@/api/system/user'
+import { saveAs } from 'file-saver'
 import { getAllRoleList } from '@/api/system/role'
 import { getDictDataByDictTypesApi } from '@/api/system/dict'
 import ButtonGroup from '@/components/ButtonGroup/index.vue'
@@ -533,6 +585,15 @@ const qrDialog = reactive({
 })
 
 const loginTypes = ref<any>([])
+
+// 导入用户
+const importDialog = reactive({ visible: false })
+const importUploadRef = ref<any>()
+const importFile = ref<any>(null)
+const importLoading = ref(false)
+
+// 导出用户 loading
+const exportLoading = ref(false)
 
 // 获取用户列表
 const getList = async () => {
@@ -786,6 +847,77 @@ const getDicts = async () => {
   }
 }
 
+// 导出用户：勾选时仅导出勾选的行，否则按当前查询条件导出
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    const params: any = { ...queryParams }
+    if (params.deptIds && params.deptIds.length) {
+      params.deptIds = params.deptIds.join(',')
+    }
+    if (selectedIds.value.length > 0) {
+      params.ids = selectedIds.value.join(',')
+    }
+    const blob = await exportUserApi(params)
+    // 文件名前缀使用本地时区的年月日时分秒
+    const now = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+    saveAs(blob, `用户数据_${timestamp}.xlsx`)
+    ElMessage.success('导出成功')
+  } catch (error) {
+  } finally {
+    exportLoading.value = false
+  }
+}
+
+// 打开导入弹窗
+const openImportDialog = () => {
+  importFile.value = null
+  importUploadRef.value?.clearFiles()
+  importDialog.visible = true
+}
+
+// 选择文件
+const handleFileChange = (uploadFile: any) => {
+  importFile.value = uploadFile.raw
+}
+
+// 移除文件
+const handleFileRemove = () => {
+  importFile.value = null
+}
+
+// 超过数量限制时仅保留最新选择的文件
+const handleExceed = (files: any) => {
+  importUploadRef.value?.clearFiles()
+  const file = files[0]
+  importUploadRef.value?.handleStart(file)
+  importFile.value = file
+}
+
+// 重置导入状态（弹窗关闭时触发）
+const resetImport = () => {
+  importFile.value = null
+  importUploadRef.value?.clearFiles()
+}
+
+// 提交导入
+const submitImport = async () => {
+  if (!importFile.value) return
+  importLoading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', importFile.value)
+    const { data } = await importUserApi(formData)
+    ElMessage.success(`导入成功，共 ${data} 条数据`)
+    importDialog.visible = false
+    getList()
+  } catch (error) {
+  } finally {
+    importLoading.value = false
+  }
+}
 
 // 初始化
 onMounted(() => {

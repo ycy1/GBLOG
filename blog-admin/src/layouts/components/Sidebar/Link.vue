@@ -12,9 +12,9 @@
   interface Props {
     to: string | RouteLocationRaw
   }
-  
+
   const props = defineProps<Props>()
-  
+
   const isExternalLink = computed(() => {
     if (typeof props.to === 'string') {
       return validate.isExternal(props.to)

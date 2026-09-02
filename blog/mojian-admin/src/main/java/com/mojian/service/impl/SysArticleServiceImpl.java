@@ -1,11 +1,18 @@
 package com.mojian.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.thread.ThreadUtil;
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.deepoove.poi.XWPFTemplate;
+import com.deepoove.poi.config.Configure;
+import com.deepoove.poi.config.ConfigureBuilder;
+import com.deepoove.poi.plugin.markdown.MarkdownRenderData;
+import com.deepoove.poi.plugin.markdown.MarkdownRenderPolicy;
+import com.deepoove.poi.plugin.markdown.MarkdownStyle;
 import com.mojian.common.Constants;
 import com.mojian.common.ResultCode;
 import com.mojian.dto.article.ArticleQueryDto;
@@ -18,26 +25,40 @@ import com.mojian.mapper.SysCategoryMapper;
 import com.mojian.mapper.SysTagMapper;
 import com.mojian.service.SysArticleService;
 import com.mojian.utils.AiUtil;
+import com.mojian.utils.DateUtil;
+import com.mojian.utils.FileUtils;
 import com.mojian.utils.PageUtil;
+import com.mojian.vo.article.ArticleDetailVo;
 import com.mojian.vo.article.ArticleListVo;
 import com.mojian.vo.article.SysArticleDetailVo;
 import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
 import com.vladsch.flexmark.util.data.MutableDataSet;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
+import java.io.*;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SysArticleServiceImpl extends ServiceImpl<SysArticleMapper, SysArticle> implements SysArticleService {
 
     private final SysTagMapper sysTagMapper;
@@ -177,6 +198,90 @@ public class SysArticleServiceImpl extends ServiceImpl<SysArticleMapper, SysArti
         } catch (IOException e) {
             throw new ServiceException(e.getMessage());
         }
+    }
+
+    @Override
+    public ResponseEntity<byte[]> exportWord(Long id) {
+        ArticleDetailVo articleDetail = baseMapper.getArticleDetail(id);
+        if (articleDetail == null){
+            throw new ServiceException("文章不存在");
+        }
+        Map<String, Object> data = new HashMap<>();
+        data.put("title", articleDetail.getTitle());
+        data.put("author", articleDetail.getNickname());
+        data.put("time", DateUtil.formatLocalDateTime(articleDetail.getCreateTime(), DateUtil.YYYY_MM_DD));
+        data.put("categoryName", articleDetail.getCategory().getName());
+        data.put("original", !StringUtils.isEmpty(articleDetail.getOriginalUrl()));
+        data.put("originalUrl", articleDetail.getOriginalUrl());
+
+        List<File> imgFiles = convertMd(articleDetail);
+        MarkdownRenderData codeMd = new MarkdownRenderData();
+        codeMd.setMarkdown(articleDetail.getContentMd());
+        codeMd.setStyle(MarkdownStyle.newStyle());
+        data.put("md", codeMd);
+
+        // 2. 编译模板并渲染
+        String basePath = System.getProperty("user.dir");
+        HttpHeaders headers = new HttpHeaders();
+        byte[] byteArray = null;
+        try{
+            ConfigureBuilder builder = Configure.builder();
+            builder.useSpringEL(); // 使用SpringEL
+            builder.bind("md", new MarkdownRenderPolicy());
+            String outputPath = basePath + File.separator + "template";
+            XWPFTemplate template = XWPFTemplate.compile(outputPath + File.separator + "template_article.docx", builder.build()).render(data);
+
+            // 3. 输出文档
+            ByteArrayOutputStream bao = new ByteArrayOutputStream();
+            template.writeAndClose(bao);
+            // 删除图片文件
+            for (File imgFile : imgFiles) {FileUtil.del(imgFile);}
+            byteArray = bao.toByteArray();
+            headers.add(HttpHeaders.CONTENT_DISPOSITION,
+                    "attachment; filename=" + URLEncoder.encode( articleDetail.getTitle() +"_" + DateUtil.parseDateToStr(DateUtil.YYYYMMDDHHMMSS, DateUtil.getNowDate()) + ".docx", StandardCharsets.UTF_8));
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentLength(byteArray.length);
+        }catch (Exception e){
+            log.error("导出文档失败:{}", e.getMessage());
+            throw new ServiceException("导出文档失败");
+        }
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(byteArray);
+    }
+
+    private List<File> convertMd(ArticleDetailVo detailVo) {
+        StringBuilder result = new StringBuilder();
+        List<File> imgFiles = new ArrayList<>();
+
+        try {
+            Matcher matcher = Pattern.compile("!\\[([^]]*)]\\(([^)]+)\\)")
+                    .matcher(detailVo.getContentMd());
+            String basePath = System.getProperty("user.dir");
+            while (matcher.find()) {
+//                System.out.println("Alt: " + matcher.group(1));
+//                System.out.println("URL: " + matcher.group(2));
+                String fileName = FileUtils.getFileNameFromUrl(matcher.group(2));
+                File file = FileUtils.urlToFile(matcher.group(2));
+                if(file == null){
+                    throw new ServiceException("md中图片不存在");
+                }
+                File filePng = FileUtils.uncompressFile(file);
+                String outputPath = basePath + File.separator + "template" + File.separator + "image" + File.separator
+                        + fileName.substring(0, fileName.lastIndexOf('.')) + ".png";
+                File fileDest = new File(outputPath);
+                FileUtil.copy(filePng, fileDest, false);
+                imgFiles.add(fileDest);
+                String replacement = "![" + matcher.group(1) + "](" + outputPath + ")"; // 构建新的png图片路径
+                matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
+            }
+            matcher.appendTail(result);
+            detailVo.setContentMd(result.toString());
+        } catch (Exception e) {
+            throw new ServiceException("md转换失败");
+        }
+        return imgFiles;
     }
 
     private void addCategory(SysArticleDetailVo sysArticle, SysArticle obj) {

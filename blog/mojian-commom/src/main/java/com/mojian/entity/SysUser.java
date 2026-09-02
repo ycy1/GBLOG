@@ -104,6 +104,10 @@ public class SysUser implements Serializable {
     @TableField(exist = false)
     private Long excludeDeptId;
 
+    @ApiModelProperty(value = "用户ID列表（导出勾选用户时传入）")
+    @TableField(exist = false)
+    private List<Long> ids;
+
     @ApiModelProperty(value = "创建时间")
     @TableField(fill = FieldFill.INSERT)
     @JsonFormat(pattern = DateUtil.YYYY_MM_DD_HH_MM_SS, timezone = "GMT+8")

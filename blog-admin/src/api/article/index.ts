@@ -60,3 +60,12 @@ export function reptileArticleApi(url: any) {
     params: {url: url}
   })
 }
+
+// 导出文章为word
+export function exportArticleWordApi(id: any) {
+  return request({
+    url: `/sys/article/exportWord/${id}`,
+    method: 'get',
+    responseType: 'blob'
+  })
+}

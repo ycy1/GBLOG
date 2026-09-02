@@ -19,5 +19,5 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
     SysUser selectByUsername(@Param("username") String username);
 
 
-    IPage<SysUserVo> selectUserPage(@Param("page") Page<Object> page, @Param("sysUser") SysUser sysUser);
+    IPage<SysUserVo> selectUserPage(@Param("page") Page<SysUserVo> page, @Param("sysUser") SysUser sysUser);
 }

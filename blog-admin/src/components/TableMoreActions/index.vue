@@ -9,6 +9,7 @@
         :type="action.type || 'primary'"
         link
         :icon="action.icon"
+        :loading="action.loading"
         @click="handleCommand(action)"
       >
         {{ action.label }}
@@ -24,16 +25,22 @@
         :type="action.type || 'primary'"
         link
         :icon="action.icon"
+        :loading="action.loading"
         @click="handleCommand(action)"
       >
         {{ action.label }}
       </el-button>
 
-      <!-- 更多下拉菜单 -->
-      <el-dropdown trigger="click" @command="handleDropdownCommand">
-        <el-button type="primary" link>
-          更多
-          <el-icon class="el-icon--right"><arrow-down /></el-icon>
+      <!-- 更多下拉菜单：若其中某项正在处理中，则“更多”按钮变为 loading，避免重复触发 -->
+      <el-dropdown trigger="click" :disabled="triggerLoading" @command="handleDropdownCommand">
+        <el-button type="primary" link :loading="triggerLoading">
+          <template v-if="triggerLoading">
+            处理中
+          </template>
+          <template v-else>
+            更多
+            <el-icon class="el-icon--right"><arrow-down /></el-icon>
+          </template>
         </el-button>
         <template #dropdown>
           <el-dropdown-menu>
@@ -41,8 +48,12 @@
               v-for="action in hiddenFiltered"
               :key="action.label"
               :command="action"
+              :disabled="action.loading"
             >
-              <el-icon v-if="action.icon" class="dropdown-icon">
+              <el-icon v-if="action.loading" class="dropdown-icon is-loading">
+                <Loading />
+              </el-icon>
+              <el-icon v-else-if="action.icon" class="dropdown-icon">
                 <component :is="action.icon" />
               </el-icon>
               {{ action.label }}
@@ -55,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowDown } from '@element-plus/icons-vue'
+import { ArrowDown, Loading } from '@element-plus/icons-vue'
 
 // 定义 props
 interface ActionItem {
@@ -63,6 +74,7 @@ interface ActionItem {
   type?: 'primary' | 'success' | 'warning' | 'danger' | 'info'
   icon?: string
   disabled?: boolean
+  loading?: boolean
   command?: any
   [key: string]: any
 }
@@ -89,13 +101,18 @@ const visibleCount = computed(() => Math.max(1, props.maxVisible - 1))
 const visibleFiltered = computed<ActionItem[]>(() => filteredActions.value.slice(0, visibleCount.value))
 const hiddenFiltered = computed<ActionItem[]>(() => filteredActions.value.slice(visibleCount.value))
 
+// 下拉菜单中是否有正在处理中的项
+const triggerLoading = computed(() => filteredActions.value.some(action => action.loading))
+
 // 点击按钮事件 - 统一使用 command 事件
 const handleCommand = (action: ActionItem) => {
+  if (action.loading) return
   emit('command', action)
 }
 
 // 下拉菜单命令事件
 const handleDropdownCommand = (action: ActionItem) => {
+  if (action.loading) return
   emit('command', action)
 }
 </script>

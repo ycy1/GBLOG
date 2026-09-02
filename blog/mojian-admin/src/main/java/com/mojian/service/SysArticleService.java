@@ -6,6 +6,7 @@ import com.mojian.dto.article.ArticleQueryDto;
 import com.mojian.entity.SysArticle;
 import com.mojian.vo.article.ArticleListVo;
 import com.mojian.vo.article.SysArticleDetailVo;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 
@@ -52,4 +53,10 @@ public interface SysArticleService extends IService<SysArticle> {
      * @param url
      */
     void reptile(String url);
+
+    /**
+     * 导出word
+     * @param id
+     */
+    ResponseEntity<byte[]> exportWord(Long id);
 }

@@ -17,7 +17,7 @@ const validate = {
    * @param {string} format
    * @returns {string}
    */ 
-  formatTime(time: string, format: string = 'yyyy-MM-dd HH:mm:ss'): string {
+  formatTime(time: string, format: string = 'YYYY-MM-DD HH:mm:ss'): string {
     return dayjs(time).format(format)
   }
 }

@@ -2,10 +2,13 @@ package com.mojian.utils;
 
 import cn.hutool.core.io.FileUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,10 +49,6 @@ public class FileUtils {
         } else {
             return String.format("%.2f TB", (double) size / TB);
         }
-    }
-
-    public static void main(String[] args) {
-        System.out.println(System.getProperty("os.name").toLowerCase());
     }
 
     /**
@@ -101,6 +100,56 @@ public class FileUtils {
             log.error("文件压缩异常,{}", e.getMessage());
         }
         return compressFile;
+    }
+
+    /**
+     * 解压webp文件并返回解压后的png文件列表
+     * @param compressFile 压缩文件
+     * @return 解压后的文件
+     */
+    public static File uncompressFile(File compressFile){
+        log.info("libwebp：图片解压缩start,大小:{}", FileUtils.convertFileSize(compressFile.length()));
+        String outputPath = System.getProperty("user.dir") + File.separator + "libwebp";
+
+        try {
+            String filePath = outputPath + File.separator + compressFile.getName();
+            // 创建临时文件
+            File file = new File(filePath);
+            // 将 compressFile 内容传输到文件 file
+            FileUtil.writeBytes(FileUtil.readBytes(compressFile), file);
+
+            // dwebp C:\Users\Lenovo\Desktop\test\222.webp -o C:\Users\Lenovo\Desktop\test\222.png
+            String LIBWEBP_HOME = System.getenv("LIBWEBP_HOME");
+            String cmd = "dwebp.exe " + filePath + " -o " + outputPath + File.separator + "uncompressFile.png";
+            // 创建一个ProcessBuilder实例
+            ProcessBuilder builder = new ProcessBuilder("cmd", "/c", LIBWEBP_HOME + cmd); // 使用dir命令列出当前目录的内容
+            if(!IpUtil.getOS().equals("win")){
+                cmd = "cwebp " + filePath + " -o " + outputPath + File.separator + "uncompressFile.png";
+                builder = new ProcessBuilder("bash", "-c", cmd);
+            }
+
+            builder.redirectErrorStream(true); // 将错误输出和标准输出合并
+            // 启动进程
+            Process process = builder.start();
+
+            // 读取命令的输出（如果有的话）
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), "GBK"));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                log.info("libwebp：{}", line);
+            }
+            // 等待进程结束
+            int exitCode = process.waitFor();
+            FileUtil.del(file);
+//            System.out.println("Exited with code: " + exitCode);
+//            System.exit(0);
+
+        } catch (Exception e) {
+            log.error("文件解压缩异常,{}", e.getMessage());
+        }
+        File uncompressFile = new File(outputPath + File.separator + "uncompressFile.png");
+        log.info("libwebp：图片解压缩end,大小:{}", FileUtils.convertFileSize(uncompressFile.length()));
+        return uncompressFile;
     }
 
     /**
@@ -170,6 +219,81 @@ public class FileUtils {
         return bos.toByteArray();
     }
 
+
+    /**
+     * 将图片 URL 转换为 File
+     * @param imageUrl 图片 URL
+     * @return File 对象
+     */
+    public static File urlToFile(String imageUrl) {
+        if(StringUtils.isEmpty(imageUrl)) return null;
+        File tempFile = null;
+        try {
+            log.info("图片URL：{}", imageUrl);
+            // 1. 创建 URL 对象并打开连接
+            URL url = new URL(imageUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            // 设置超时时间（防止网络问题导致卡死）
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(10000);
+            connection.setRequestMethod("GET");
+
+            // 2. 获取文件扩展名
+            String fileName = getFileNameFromUrl(imageUrl);
+            String extension = getFileExtension(fileName);
+
+            // 3. 创建临时文件（使用 .tmp 后缀，下载完成后重命名为正确扩展名）
+            tempFile = File.createTempFile("image_", extension);
+            // 确保程序退出时自动删除
+            tempFile.deleteOnExit();
+
+            // 4. 下载图片并写入临时文件
+            try (InputStream inputStream = connection.getInputStream();
+                 FileOutputStream outputStream = new FileOutputStream(tempFile)) {
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+            }
+        }catch (Exception e){
+            log.error("图片URL转换异常：{}", e.getMessage());
+        }
+        return tempFile;
+    }
+
+    public static void main(String[] args) throws Exception {
+//        File file = urlToFile("http://182.92.85.80/group1/M00/00/07/tlxVUGqIRaqAYydCAAAkUuxDWME124.png");
+//        System.out.println(file.getName());
+        String fileNameFromUrl = getFileNameFromUrl("http://182.92.85.80/group1/M00/00/07/tlxVUGqIRaqAYydCAAAkUuxDWME124.png");
+        System.out.println(fileNameFromUrl.substring(0, fileNameFromUrl.lastIndexOf('.')));
+    }
+
+
+    /**
+     * 从 URL 中提取文件名
+     */
+    public static String getFileNameFromUrl(String imageUrl) {
+        String[] segments = imageUrl.split("/");
+        String lastSegment = segments[segments.length - 1];
+        // 处理可能带参数的情况，如 image.jpg?token=xxx
+        int queryIndex = lastSegment.indexOf('?');
+        if (queryIndex != -1) {
+            lastSegment = lastSegment.substring(0, queryIndex);
+        }
+        return lastSegment;
+    }
+
+    /**
+     * 获取文件扩展名
+     */
+    private static String getFileExtension(String fileName) {
+        if (fileName == null || !fileName.contains(".")) {
+            return ".jpg"; // 默认扩展名
+        }
+        int dotIndex = fileName.lastIndexOf('.');
+        return fileName.substring(dotIndex);
+    }
 
 
 

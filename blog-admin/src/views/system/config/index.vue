@@ -42,9 +42,17 @@
             <el-tag v-else type="danger">否</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" align="center" prop="createTime" />
-        <el-table-column label="更新时间" align="center" prop="updateTime" />
-        <el-table-column label="备注" align="center" prop="remark" />
+        <!-- <el-table-column label="创建时间" align="center" prop="createTime" width="200">
+          <template #default="{ row }">
+            {{ row.createTime ? validate.formatTime(row.createTime, 'YYYY-MM-DD') : '-' }}
+          </template>
+        </el-table-column> -->
+        <el-table-column label="更新时间" align="center" prop="updateTime" width="200">
+          <template #default="{ row }">
+            {{ validate.formatTime(row.updateTime, 'YYYY-MM-DD') }}
+          </template>
+        </el-table-column>
+        <!-- <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip /> -->
         <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
           <template #default="scope">
             <el-button type="primary" link icon="Edit" @click="handleUpdate(scope.row)"
@@ -105,6 +113,7 @@ import {
   addSysConfigApi,
   updateSysConfigApi,
 } from "@/api/system/config";
+import validate from "@/utils/validate";
 
 // 遮罩层
 const loading = ref(true);

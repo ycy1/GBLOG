@@ -54,6 +54,30 @@ export function deleteUserApi(ids: string[] | number) {
 }
 
 /**
+ * 导出用户（按当前筛选条件）
+ */
+export function exportUserApi(params?: any) {
+  return request({
+    url: '/sys/user/exportUsers',
+    method: 'get',
+    params,
+    responseType: 'blob'
+  })
+}
+
+/**
+ * 导入用户（上传 Excel 文件）
+ */
+export function importUserApi(data: any) {
+  return request({
+    url: '/sys/user/importUser',
+    method: 'post',
+    headers: { 'Content-Type': 'multipart/form-data' },
+    data
+  })
+}
+
+/**
  * 重置密码
  */
 export function resetPasswordApi(data: any) {

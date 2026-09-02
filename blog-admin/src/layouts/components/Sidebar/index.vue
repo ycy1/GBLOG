@@ -12,7 +12,6 @@
           :text-color="settingsStore.theme === 'dark' ? '#bfcbd9' : (settingsStore.sidebarStyle === 'light' ? '#303133' : '#bfcbd9')"
           :active-text-color="settingsStore.themeColor"
           :collapse-transition="false"
-          @select="handleSelect"
           :unique-opened="true"
         >
           <template v-for="route in menuRoutes" :key="route.path">
@@ -25,18 +24,17 @@
   
   <script setup lang="ts">
   import { computed } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
+  import { useRoute } from 'vue-router'
   import { usePermissionStore } from '@/store/modules/permission'
   import { useSettingsStore } from '@/store/modules/settings'
   import Logo from '@/layouts/components/Sidebar/Logo.vue'
   import settings from '@/config/settings'
   import MenuItem from './MenuItem.vue'
   import validate from '@/utils/validate'
-  
+
   const route = useRoute()
   const permissionStore = usePermissionStore()
   const settingsStore = useSettingsStore()
-  const router = useRouter()
   // 从 props 接收折叠状态
   defineProps({
     isCollapse: {
@@ -93,19 +91,6 @@
     
     // 其他路径，确保只有一个斜杠
     return '/' + routePath
-  }
-  
-  // 添加 select 事件处理函数
-  const handleSelect = (index: string) => {
-    if (validate.isExternal(index)) {
-      window.open(index, '_blank')
-      return
-    }
-    
-    // 内部路由跳转
-    if (route.path !== index) {
-      router.push(index)
-    }
   }
   </script>
   

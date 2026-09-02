@@ -28,7 +28,7 @@ export const useSettingsStore = defineStore({
     pageAnimation: 'dissolve',
     watermark: false,
     tagsStyle: 'border',
-    dynamicTitle: false,
+    dynamicTitle: true,
     greyMode: false,
     showFooter: true,
     title: '拾壹博客管理系统',

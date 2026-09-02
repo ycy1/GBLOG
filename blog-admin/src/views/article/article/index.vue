@@ -117,6 +117,13 @@
                   icon: 'Comment',
                   disabled: !hasPermission('sys:article:update'),
                   command: { type: 'comment', row: scope.row }
+                },
+                {
+                  label: '导出Word',
+                  icon: 'Download',
+                  loading: exportLoadingId === scope.row.id,
+                  disabled: !hasPermission('sys:article:word'),
+                  command: { type: 'exportWord', row: scope.row }
                 }
               ]"
               @command="handleActionCommand"
@@ -346,8 +353,9 @@ import { getCategoryListApi } from '@/api/article/category'
 import { getTagListApi } from '@/api/article/tag'
 import {
   getArticleListApi, getDetailApi, deleteArticleApi,
-  addArticleApi, updateArticleApi, updateStatusApi, reptileArticleApi
+  addArticleApi, updateArticleApi, updateStatusApi, reptileArticleApi, exportArticleWordApi
 } from '@/api/article'
+import { saveAs } from 'file-saver'
 import { uploadApi, deleteFileApi, uploadImageApi } from '@/api/file'
 import { getDictDataByDictTypesApi } from '@/api/system/dict'
 import { useUserStore } from '@/store/modules/user'
@@ -379,6 +387,9 @@ const handleActionCommand = async (action: any) => {
     case 'comment':
       handleComment(row)
       break
+    case 'exportWord':
+      handleExportWord(row)
+      break
   }
 }
 
@@ -405,6 +416,7 @@ const queryFormRef = ref<FormInstance>()
 const formRef = ref<FormInstance>()
 const mdRef = ref();
 const submitLoading = ref(false)
+const exportLoadingId = ref<number | null>(null)
 
 // 选中项数组
 const selectedIds = ref<string[]>([])
@@ -688,6 +700,27 @@ const handleDelete = (row: any) => {
 // 查看评论
 const handleComment = (row: any) => {
   router.push({ path: '/message/comment', query: { articleId: row.id, articleTitle: row.title } })
+}
+
+// 导出word
+const handleExportWord = async (row: any) => {
+  if (exportLoadingId.value) return
+  exportLoadingId.value = row.id
+  try {
+    const blob: any = await exportArticleWordApi(row.id)
+    // 后端异常返回 JSON，避免把错误信息存成文件
+    if (blob && blob.type && blob.type.includes('application/json')) {
+      const text = await blob.text()
+      const res = JSON.parse(text)
+      ElMessage.error(res.message || '导出失败')
+      return
+    }
+    const fileName = `${row.title || '文章'}.docx`.replace(/[\\/:*?"<>|]/g, '_')
+    saveAs(blob, fileName)
+  } catch (error) {
+  } finally {
+    exportLoadingId.value = null
+  }
 }
 
 // 发布文章

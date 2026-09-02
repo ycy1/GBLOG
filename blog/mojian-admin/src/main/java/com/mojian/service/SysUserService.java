@@ -8,7 +8,13 @@ import com.mojian.dto.user.UpdatePwdDTO;
 import com.mojian.vo.user.OnlineUserVo;
 import com.mojian.vo.user.SysUserVo;
 import com.mojian.vo.user.SysUserProfileVo;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.net.http.HttpResponse;
 import java.util.List;
 
 public interface SysUserService extends IService<SysUser> {
@@ -16,6 +22,16 @@ public interface SysUserService extends IService<SysUser> {
      * 分页查询用户
      */
     IPage<SysUserVo> listUsers(SysUser sysUser);
+
+    /**
+     * 用户导出
+     */
+    ResponseEntity<byte[]> export(SysUser sysUser);
+
+    /**
+     * 用户导入
+     */
+    Integer importUsers(MultipartFile file);
 
     /**
      * 新增用户

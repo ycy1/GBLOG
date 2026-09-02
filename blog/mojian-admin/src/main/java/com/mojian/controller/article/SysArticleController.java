@@ -5,12 +5,14 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.mojian.common.Result;
 import com.mojian.dto.article.ArticleQueryDto;
 import com.mojian.entity.SysArticle;
+import com.mojian.entity.SysUser;
 import com.mojian.service.SysArticleService;
 import com.mojian.vo.article.ArticleListVo;
 import com.mojian.vo.article.SysArticleDetailVo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -70,5 +72,12 @@ public class SysArticleController {
     public Result<Void> reptile(String url){
         sysArticleService.reptile(url);
         return Result.success();
+    }
+
+    @GetMapping("/exportWord/{id}")
+    @ApiOperation(value = "文章导出word")
+    @SaCheckPermission("sys:article:word")
+    public ResponseEntity<byte[]> exportWord(@PathVariable Long id) {
+        return sysArticleService.exportWord(id);
     }
 }

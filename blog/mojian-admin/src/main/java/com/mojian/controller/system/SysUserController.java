@@ -13,8 +13,11 @@ import com.mojian.vo.user.SysUserProfileVo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.util.List;
 
 @RestController
@@ -29,6 +32,20 @@ public class SysUserController {
     @ApiOperation(value = "获取用户列表")
     public Result<IPage<SysUserVo>> listUsers(SysUser sysUser) {
         return Result.success(sysUserService.listUsers(sysUser));
+    }
+
+    @GetMapping("/exportUsers")
+    @ApiOperation(value = "用户导出")
+    @SaCheckPermission("sys:user:export")
+    public ResponseEntity<byte[]> exportUsers(SysUser sysUser) {
+        return sysUserService.export(sysUser);
+    }
+
+    @PostMapping("/importUser")
+    @ApiOperation(value = "用户导入")
+    @SaCheckPermission("sys:user:import")
+    public Result<Integer> importUser(@RequestParam("file") MultipartFile file) {
+        return Result.success(sysUserService.importUsers(file));
     }
 
     @PostMapping

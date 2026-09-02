@@ -24,6 +24,14 @@ export const constantRoutes: RouteRecordRaw[] = [
     meta: {hidden: true },
   },
 
+  // 文件中心独立路由：支持在浏览器新窗口/新标签打开（由外链菜单跳转）
+  {
+    path: "/filecenter/index",
+    name: "FileCenter",
+    component: () => import("@/views/filecenter/index.vue"),
+    meta: { title: "文件中心", hidden: true },
+  },
+
   {
     path: '/:pathMatch(.*)*',
     component: () => import('@/views/error-page/404.vue'),

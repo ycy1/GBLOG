@@ -1,5 +1,6 @@
 package com.mojian.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
@@ -8,21 +9,26 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mojian.common.Constants;
 import com.mojian.common.RedisConstants;
+import com.mojian.config.fesod.CustomCellStyleWriteHandler;
+import com.mojian.config.fesod.CustomReadDataListener;
 import com.mojian.dto.user.SysUserAddAndUpdateDto;
+import com.mojian.export.SysUserExport;
 import com.mojian.mapper.SysDeptUserMapper;
 import com.mojian.mapper.SysRoleMapper;
-import com.mojian.utils.DateUtil;
-import com.mojian.utils.PageUtil;
-import com.mojian.utils.QrCodeUtils;
+import com.mojian.service.SysFileCenterService;
+import com.mojian.utils.*;
 import com.mojian.entity.SysUser;
 import com.mojian.exception.ServiceException;
 import com.mojian.mapper.SysUserMapper;
 import com.mojian.service.SysUserService;
-import com.mojian.utils.RedisUtil;
 import com.mojian.vo.user.OnlineUserVo;
 import com.mojian.vo.user.SysUserVo;
 import com.mojian.vo.user.SysUserProfileVo;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.fesod.sheet.FesodSheet;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import cn.dev33.satoken.secure.BCrypt;
@@ -33,8 +39,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.net.URLEncoder;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -42,6 +50,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.mojian.dto.user.UpdatePwdDTO;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
@@ -53,11 +62,66 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     private final SysUserMapper sysUserMapper;
     private final FileStorageService fileStorageService;
     private final SysDeptUserMapper deptUserMapper;
+    private final SysFileCenterService fileCenterService;
 
     @Override
     public IPage<SysUserVo> listUsers(SysUser sysUser) {
         // 部门信息已由 selectUserPage 在 SQL 层聚合填充（deptIds/deptNames）
         return baseMapper.selectUserPage(PageUtil.getPage(),sysUser);
+    }
+
+    @Override
+    public ResponseEntity<byte[]> export(SysUser sysUser) {
+        Page<SysUserVo> page = PageUtil.getPage();
+        // 勾选导出：按勾选数量一次取回，避免被默认 pageSize(10) 截断
+        if (sysUser.getIds() != null && !sysUser.getIds().isEmpty()) {
+            page.setCurrent(1);
+            page.setSize(sysUser.getIds().size());
+        }
+        IPage<SysUserVo> sysUserVoIPage = baseMapper.selectUserPage(page, sysUser);
+        List<SysUserExport> sysUserExports = BeanUtil.copyToList(sysUserVoIPage.getRecords(), SysUserExport.class);
+        for (SysUserExport sysUserExport : sysUserExports) {
+            sysUserExport.setQrImgFile(FileUtils.urlToFile(sysUserExport.getQrImg()));
+        }
+
+
+        HttpHeaders headers = new HttpHeaders();
+        byte[] byteArray = null;
+        try {
+            ByteArrayOutputStream bao = new ByteArrayOutputStream();
+            FesodSheet.write(bao, SysUserExport.class)
+                    .registerWriteHandler(new CustomCellStyleWriteHandler())
+                    .sheet("模板").doWrite(sysUserExports);
+
+            byteArray = bao.toByteArray();
+            headers.add(HttpHeaders.CONTENT_DISPOSITION,
+                    "attachment; filename=" + URLEncoder.encode("用户数据_" + DateUtil.parseDateToStr(DateUtil.YYYYMMDDHHMMSS, DateUtil.getNowDate()) + ".xlsx", StandardCharsets.UTF_8));
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentLength(byteArray.length);
+        } catch (Exception e) {
+            log.error("导出用户信息失败:{}", e.getMessage());
+            throw new RuntimeException("导出用户信息失败: " + e.getMessage());
+        }
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(byteArray);
+
+    }
+
+    @Override
+    public Integer importUsers(MultipartFile file) {
+        CustomReadDataListener<SysUserExport> dataListener = null;
+        dataListener = new CustomReadDataListener<>("users");
+        List<SysUserExport> users = new ArrayList<>();
+        try {
+            FesodSheet.read(file.getInputStream(), SysUserExport.class, dataListener).sheet().doRead();
+            users = dataListener.getDatas("users");
+        } catch (Exception e) {
+            log.error("导入用户信息失败:{}", e.getMessage());
+            throw new RuntimeException("导入用户信息失败: " + e.getMessage());
+        }
+
+        return users.size();
     }
 
     @Override

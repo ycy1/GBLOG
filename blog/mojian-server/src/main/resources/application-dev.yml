@@ -33,6 +33,10 @@ spring:
     port: 6379
     timeout: 5000
     database: 8
+    lettuce:
+      pool:
+        max-active: 10   # 增加连接池大小，避免连接等待超时
+        max-wait: 5000ms   # 改为-1表示无限等待，或设置一个较大值如5000ms
 
 #==============================knife4j配置==============================
 knife4j:

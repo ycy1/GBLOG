@@ -77,7 +77,7 @@
         :rules="rules"
         label-width="100px"
       >
-        <el-form-item label="字典类型" prop="dictType">
+        <el-form-item label="字典code" prop="dictType">
           <el-input v-model="dictDataForm.dictType" disabled />
         </el-form-item>
         <el-form-item label="数据标签" prop="label">

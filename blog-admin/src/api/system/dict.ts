@@ -79,4 +79,25 @@ export function getDictDataByDictTypesApi(dictTypes : any) {
     url: `/sys/dictData/getDiceData/${dictTypes}`,
     method: 'get'
   })
-} 
+}
+
+/**
+ * 获取字典数据列表
+ */
+export function getDictDataDictTypeCacheApi(dictTypes : any) {
+  return request({
+    url: `/sys/dictData/selectDataByDictTypeCache/${dictTypes}`,
+    method: 'get'
+  })
+}
+
+/**
+ * 刷新字典缓存（删除 Redis 缓存并重新加载）
+ */
+export function refreshDictCacheApi(dictTypes: string[]) {
+  return request({
+    url: '/sys/dict/refreshCache',
+    method: 'put',
+    data: dictTypes
+  })
+}
