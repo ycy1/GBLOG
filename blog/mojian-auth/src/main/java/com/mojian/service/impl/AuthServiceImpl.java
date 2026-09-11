@@ -9,6 +9,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mojian.common.Constants;
 import com.mojian.common.RedisConstants;
+import com.mojian.common.Result;
 import com.mojian.config.properties.*;
 import com.mojian.dto.Captcha;
 import com.mojian.dto.EmailRegisterDto;
@@ -17,6 +18,7 @@ import com.mojian.dto.user.LoginUserInfo;
 import com.mojian.entity.SysConfig;
 import com.mojian.entity.SysRole;
 import com.mojian.enums.LoginTypeEnum;
+import com.mojian.holder.QrLoginHolder;
 import com.mojian.mapper.SysConfigMapper;
 import com.mojian.service.AuthService;
 import com.mojian.entity.SysUser;
@@ -26,6 +28,8 @@ import com.mojian.mapper.SysMenuMapper;
 import com.mojian.mapper.SysRoleMapper;
 import com.mojian.mapper.SysUserMapper;
 import com.mojian.utils.*;
+import com.mojian.vo.QrLoginStateVo;
+import com.mojian.vo.QrLoginVo;
 import com.mojian.vo.user.SysUserVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +45,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.async.DeferredResult;
 
 import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletResponse;
@@ -90,6 +95,20 @@ public class AuthServiceImpl implements AuthService {
     private final WechatProperties wechatProperties;
 
     private final SysConfigMapper sysConfigMapper;
+
+    private final QrLoginHolder qrLoginHolder;
+
+    /**
+     * 二维码边长（像素）
+     */
+    private static final int QR_CODE_SIZE = 300;
+
+    /**
+     * 长轮询单次挂起时长。必须小于 WebMvcConfig 里配置的 async 全局超时（30s），
+     * 否则会先被 MVC 判超时、拿到一个不体面的错误响应。前端超时也要比它更长，
+     * 见 blog-admin/src/api/system/auth.ts 里 pollQrLoginApi 的 timeout。
+     */
+    private static final long POLL_TIMEOUT_MS = 25_000L;
 
 
     @Override
@@ -254,6 +273,152 @@ public class AuthServiceImpl implements AuthService {
         return loginUserInfo;
     }
 
+    @Override
+    public QrLoginVo generateQrLogin() {
+        // 用 UUID 而不是微信验证码那种 4 位数字：这里 code 就是换 token 的唯一凭据，
+        // 必须不可枚举，不能靠猜
+        String code = UUID.randomUUID().toString().replace("-", "");
+
+        redisUtil.set(RedisConstants.QR_LOGIN + code, JSONUtil.toJsonStr(QrLoginStateVo.waiting()),
+                RedisConstants.MINUTE_EXPIRE, TimeUnit.SECONDS);
+
+        String qrCodeImage;
+        try {
+            byte[] png = QrCodeUtils.generatePng(code, QR_CODE_SIZE);
+            qrCodeImage = "data:image/png;base64," + Base64.getEncoder().encodeToString(png);
+        } catch (IOException e) {
+            log.error("生成扫码登录二维码失败", e);
+            throw new ServiceException("生成二维码失败，请重试");
+        }
+
+        return QrLoginVo.of(code, qrCodeImage, (int) RedisConstants.MINUTE_EXPIRE);
+    }
+
+    @Override
+    public DeferredResult<Result<QrLoginStateVo>> pollQrLogin(String code) {
+        DeferredResult<Result<QrLoginStateVo>> deferredResult =
+                new DeferredResult<>(POLL_TIMEOUT_MS, Result.success(QrLoginStateVo.waiting()));
+
+        // 先挂起再读状态。反过来的话，读完发现还是待扫码、还没来得及挂起时 App 刚好确认了，
+        // 这次轮询就只能干等到超时才返回
+        qrLoginHolder.register(code, deferredResult);
+
+        QrLoginStateVo state = currentState(code);
+        if (!QrLoginStateVo.WAITING.equals(state.getState())) {
+            qrLoginHolder.complete(code, state);
+        }
+        return deferredResult;
+    }
+
+    @Override
+    public QrLoginStateVo scanQrLogin(String code) {
+        SysUser user = getCurrentSysUser();
+        assertNotFinished(code);
+
+        QrLoginStateVo scanned = QrLoginStateVo.scanned(user.getNickname(), user.getAvatar());
+        // 扫描后重置有效期，避免"扫到了、但还没点确认就过期"这种最难受的情况
+        redisUtil.set(RedisConstants.QR_LOGIN + code, JSONUtil.toJsonStr(scanned),
+                RedisConstants.MINUTE_EXPIRE, TimeUnit.SECONDS);
+
+        qrLoginHolder.complete(code, scanned);
+        return scanned;
+    }
+
+    @Override
+    public LoginUserInfo confirmQrLogin(String code) {
+        QrLoginStateVo current = readState(code);
+        if (QrLoginStateVo.CONFIRMED.equals(current.getState())) {
+            throw new ServiceException("该二维码已确认，请刷新后重试");
+        }
+        // 强制走完"先扫码 -> 再确认"两步，防止误扫直接登录
+        if (!QrLoginStateVo.SCANNED.equals(current.getState())) {
+            throw new ServiceException("请先扫描二维码");
+        }
+
+        SysUser user = getCurrentSysUser();
+        LoginUserInfo loginUserInfo = BeanCopyUtil.copyObj(user, LoginUserInfo.class);
+
+        // 用 createLoginSession 而不是 login：这个请求是 App 发起的，login 会把新 token
+        // 注入到 App 自己的请求上下文里，污染 App 的会话。createLoginSession 不碰当前上下文，
+        // 但同样会触发 SaTokenListener.doLogin（登录时间、在线用户记录照常）
+        loginUserInfo.setToken(StpUtil.createLoginSession(user.getId()));
+
+        QrLoginStateVo confirmed = QrLoginStateVo.confirmed(loginUserInfo);
+        // 有效期放宽到 5 分钟：确认可能发生在二维码有效期的最后一刻，浏览器还没来得及轮询到，
+        // 不能让它跟着那 1 分钟的 key 一起消失
+        redisUtil.set(RedisConstants.QR_LOGIN + code, JSONUtil.toJsonStr(confirmed),
+                RedisConstants.FIVE_MINUTES_EXPIRE, TimeUnit.SECONDS);
+
+        qrLoginHolder.complete(code, confirmed); // 更新DeferredResult状态
+        return loginUserInfo;
+    }
+
+    @Override
+    public void cancelQrLogin(String code) {
+        assertNotFinished(code);
+
+        QrLoginStateVo canceled = QrLoginStateVo.canceled();
+        redisUtil.set(RedisConstants.QR_LOGIN + code, JSONUtil.toJsonStr(canceled),
+                RedisConstants.MINUTE_EXPIRE, TimeUnit.SECONDS);
+
+        qrLoginHolder.complete(code, canceled);
+    }
+
+    /**
+     * 读取状态用于轮询。已确认的顺带消费掉（一次性），防止同一个 code 被反复换 token。
+     * key 不存在时返回 EXPIRED 而不是抛异常——轮询要把"过期"当作正常结果返回给前端。
+     */
+    private QrLoginStateVo currentState(String code) {
+        Object value = redisUtil.get(RedisConstants.QR_LOGIN + code);
+        if (value == null) {
+            return QrLoginStateVo.expired();
+        }
+        QrLoginStateVo state = JSONUtil.toBean(JSONUtil.parseObj(value), QrLoginStateVo.class);
+        if (QrLoginStateVo.CONFIRMED.equals(state.getState())) {
+            redisUtil.delete(RedisConstants.QR_LOGIN + code);
+        }
+        return state;
+    }
+
+    /**
+     * 读取状态，key 不存在直接报"已过期"（用于 scan/confirm/cancel 这些操作）
+     */
+    private QrLoginStateVo readState(String code) {
+        Object value = redisUtil.get(RedisConstants.QR_LOGIN + code);
+        if (value == null) {
+            throw new ServiceException("二维码已过期，请刷新后重试");
+        }
+        return JSONUtil.toBean(JSONUtil.parseObj(value), QrLoginStateVo.class);
+    }
+
+    /**
+     * 二维码一旦确认或取消，就不能再被操作
+     */
+    private void assertNotFinished(String code) {
+        QrLoginStateVo current = readState(code);
+        if (QrLoginStateVo.CONFIRMED.equals(current.getState())) {
+            throw new ServiceException("该二维码已确认，请刷新后重试");
+        }
+        if (QrLoginStateVo.CANCELED.equals(current.getState())) {
+            throw new ServiceException("该二维码已取消，请刷新后重试");
+        }
+    }
+
+    /**
+     * 取当前登录的 App 用户并校验账号可用
+     */
+    private SysUser getCurrentSysUser() {
+        Integer userId = StpUtil.getLoginIdAsInt();
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new ServiceException("用户不存在");
+        }
+        if (user.getStatus() != Constants.YES) {
+            throw new ServiceException("账号已被禁用");
+        }
+        return user;
+    }
+
 //    @Override
 //    public String wechatLogin(WxMpXmlMessage message) {
 //        String code = message.getContent().toUpperCase();
@@ -343,7 +508,7 @@ public class AuthServiceImpl implements AuthService {
                     .ipLocation(IpUtil.getIp2region(ip))
                     .ip(ip)
                     .status(Constants.YES)
-                    .nickname("Wechat_"+getRandomString(6))
+                    .nickname("wx_"+getRandomString(4))
                     .avatar(userInfo.getString("avatarUrl"))
                     .sex(0)
                     .build();

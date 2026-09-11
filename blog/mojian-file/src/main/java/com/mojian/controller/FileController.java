@@ -149,9 +149,9 @@ public class FileController {
             path = path + source + "/";
         }
         String defaultPlatform = fileStorageService.getProperties().getDefaultPlatform();
-//        System.out.println(defaultPlatform);
+
         //获取文件名和后缀
-        FileInfo fileInfo = fileStorageService.of(file)
+        FileInfo fileInfo = fileStorageService.of(FileUtils.isImage(file)?FileUtils.compressFile(file):file)
                 .setPlatform(defaultPlatform)
                 .setPath(path)
                 .setSaveFilename(RandomUtil.randomNumbers(2) + "_" + file.getOriginalFilename()) //随机俩个数字，避免相同文件名时文件名冲突

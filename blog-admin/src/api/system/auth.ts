@@ -58,3 +58,22 @@ export function getCaptchaSwitchApi() {
     method: 'get'
   })
 }
+
+// 生成扫码登录二维码（1 分钟有效），返回 { code, qrCodeImage, expireSeconds }
+export function getQrLoginCodeApi() {
+  return request({
+    url: '/api/auth/qrcode/generate',
+    method: 'get'
+  })
+}
+
+// 长轮询扫码登录状态
+// timeout 必须显式放宽：request.ts 里的默认超时是 15s，而后端一次长轮询最多挂起 25s，
+// 不覆盖的话每次请求都会被客户端提前掐断
+export function pollQrLoginApi(code: string) {
+  return request({
+    url: `/api/auth/qrcode/poll/${code}`,
+    method: 'get',
+    timeout: 30000
+  })
+}

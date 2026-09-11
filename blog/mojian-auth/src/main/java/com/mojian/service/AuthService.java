@@ -1,13 +1,17 @@
 package com.mojian.service;
 
 import com.alibaba.fastjson.JSONObject;
+import com.mojian.common.Result;
 import com.mojian.dto.Captcha;
 import com.mojian.dto.EmailRegisterDto;
 import com.mojian.dto.LoginDTO;
 import com.mojian.dto.user.LoginUserInfo;
 import com.mojian.entity.SysUser;
+import com.mojian.vo.QrLoginStateVo;
+import com.mojian.vo.QrLoginVo;
 import com.mojian.vo.user.SysUserVo;
 import me.zhyd.oauth.model.AuthCallback;
+import org.springframework.web.context.request.async.DeferredResult;
 
 import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletResponse;
@@ -103,4 +107,32 @@ public interface AuthService {
      * @return
      */
     Captcha getCaptcha();
+
+    /**
+     * 生成扫码登录二维码（1 分钟有效）
+     */
+    QrLoginVo generateQrLogin();
+
+    /**
+     * 长轮询扫码登录状态
+     *
+     * <p>状态没变化时把请求挂起，直到 App 扫码/确认或超时才返回。
+     * 返回 {@code CONFIRMED} 时同时把该 code 消费掉（一次性）。
+     */
+    DeferredResult<Result<QrLoginStateVo>> pollQrLogin(String code);
+
+    /**
+     * App 扫码（进入"待确认"状态）
+     */
+    QrLoginStateVo scanQrLogin(String code);
+
+    /**
+     * App 确认登录，返回该次登录的用户信息（含 token）
+     */
+    LoginUserInfo confirmQrLogin(String code);
+
+    /**
+     * App 取消登录
+     */
+    void cancelQrLogin(String code);
 }

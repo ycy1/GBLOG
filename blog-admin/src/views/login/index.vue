@@ -101,11 +101,22 @@
           <div v-else class="qrcode-box">
             <div class="qrcode-wrapper">
               <div class="qrcode-scanner"></div>
-              <img :src="qrCodeUrl" alt="二维码" class="qrcode-img" />
+              <img v-if="qrCodeUrl" :src="qrCodeUrl" alt="二维码" class="qrcode-img" />
               <transition name="fade">
-                <div class="qrcode-mask" v-if="qrCodeExpired">
-                  <el-icon class="expired-icon"><Warning /></el-icon>
-                  <p>二维码已过期</p>
+                <div class="qrcode-mask" v-if="qrMaskState">
+                  <el-icon class="expired-icon">
+                    <component
+                      :is="qrMaskState === 'canceled' ? 'CircleClose' : 'Warning'"
+                    />
+                  </el-icon>
+                  <p>{{ qrMaskState === "canceled" ? "已取消登录" : "二维码已过期" }}</p>
+                  <p class="qrcode-mask-tip">
+                    {{
+                      qrMaskState === "canceled"
+                        ? "你在手机上取消了本次登录"
+                        : "请刷新后重新扫描"
+                    }}
+                  </p>
                   <el-button type="primary" @click="refreshQrCode" round>
                     <el-icon><RefreshRight /></el-icon>
                     刷新二维码
@@ -115,7 +126,11 @@
             </div>
             <p class="qrcode-tip">
               <el-icon><Iphone /></el-icon>
-              请使用手机扫码登录
+              {{
+                qrCodeStatus === "scanned"
+                  ? "已扫描，请在手机上确认"
+                  : "请使用手机扫码登录"
+              }}
             </p>
           </div>
         </transition>
@@ -174,7 +189,12 @@ import { useSettingsStore } from "@/store/modules/settings";
 import Logo from "@/layouts/components/Sidebar/Logo.vue";
 import settings from "@/config/settings";
 import SliderVerify from "./components/SliderVerify.vue";
-import { getCaptchaSwitchApi } from "@/api/system/auth";
+import {
+  getCaptchaSwitchApi,
+  getQrLoginCodeApi,
+  pollQrLoginApi,
+} from "@/api/system/auth";
+import { setToken } from "@/utils/auth";
 
 const QrCode = markRaw({
   name: "QrCode",
@@ -201,8 +221,14 @@ const loginFormRef = ref<FormInstance>();
 const loading = ref(false);
 const rememberMe = ref(false);
 const loginType = ref("account");
-const qrCodeUrl = ref("http://182.92.85.80/group1/M00/00/03/tlxVUGiQZJOAD1qSAABtjEPOWpU401.jpg");
-const qrCodeExpired = ref(false);
+const qrCodeUrl = ref("");
+// 二维码遮罩：null 不显示 / expired 已过期 / canceled 手机端主动取消。
+// 用一个状态而不是两个 boolean，避免"已过期"和"已取消"同时为真
+const qrMaskState = ref<"expired" | "canceled" | null>(null);
+// loading: 正在取二维码 / waiting: 待扫码 / scanned: 已扫码，等待手机端确认
+const qrCodeStatus = ref<"loading" | "waiting" | "scanned">("loading");
+// 当前二维码的登录码，长轮询用它作为凭据
+let qrCodeCode = "";
 
 const showSliderVerify = ref(false);
 const sliderVerifyRef = ref();
@@ -288,25 +314,113 @@ const handleSocialLogin = (type: string) => {
   ElMessage.success(type + "登录测试");
 };
 
-const refreshQrCode = async () => {
-  qrCodeExpired.value = false;
-  // TODO: 调用后端接口获取新的二维码
+/**
+ * 用"代"来作废上一轮的异步流程。
+ * 光靠一个 boolean 是不够的：刷新时把它置回 false，上一轮那个还在飞的请求回来后
+ * 会误以为自己是有效的，于是和新的一轮同时轮询。
+ */
+let qrEpoch = 0;
+let qrCountdownTimer: number | undefined;
+
+/** 作废当前二维码的所有异步流程（长轮询 + 倒计时） */
+const stopQrLogin = () => {
+  qrEpoch += 1;
+  if (qrCountdownTimer) {
+    clearInterval(qrCountdownTimer);
+    qrCountdownTimer = undefined;
+  }
 };
 
-let qrCodeTimer: number;
+const startQrCountdown = (epoch: number, seconds: number) => {
+  let remain = seconds;
+  qrCountdownTimer = window.setInterval(() => {
+    remain -= 1;
+    if (remain > 0 || epoch !== qrEpoch) return;
+    // 后端那边 key 已经过期了，不用等轮询返回，直接展示过期遮罩
+    stopQrLogin();
+    qrMaskState.value = "expired";
+  }, 1000);
+};
+
+/**
+ * 长轮询：一次返回后再发下一次，而不是定时空转。
+ * 后端每次最多挂起 25 秒，所以 pollQrLoginApi 的 axios 超时设成了 30 秒。
+ */
+const pollQrCode = async (epoch: number) => {
+  while (epoch === qrEpoch) {
+    let state: any;
+    try {
+      const res = await pollQrLoginApi(qrCodeCode);
+      state = res.data;
+    } catch (e) {
+      if (epoch !== qrEpoch) return;
+      // 网络抖动，等一下重试，别把整个登录流程打断
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      continue;
+    }
+    if (epoch !== qrEpoch) return;
+
+    if (state?.state === "CONFIRMED" && state.loginUserInfo?.token) {
+      stopQrLogin();
+      setToken(state.loginUserInfo.token);
+      // toast 里带上用户名。用户信息和动态路由交给路由守卫去拉，
+      // 和账号密码登录走同一条路
+      const { username, nickname } = state.loginUserInfo;
+      const who = nickname || username;
+      ElMessage.success(who ? `登录成功，欢迎回来 ${who}` : "登录成功");
+      router.push("/");
+      return;
+    }
+
+    if (state?.state === "EXPIRED" || state?.state === "CANCELED") {
+      stopQrLogin();
+      // 手机端主动取消 ≠ 二维码过期，两种提示要分开
+      qrMaskState.value = state.state === "CANCELED" ? "canceled" : "expired";
+      return;
+    }
+
+    if (state?.state === "SCANNED") {
+      qrCodeStatus.value = "scanned";
+    }
+    // WAITING（本轮挂起超时）和 SCANNED 都继续下一轮
+  }
+};
+
+const refreshQrCode = async () => {
+  stopQrLogin();
+  const epoch = qrEpoch;
+
+  qrMaskState.value = null;
+  qrCodeStatus.value = "loading";
+  qrCodeUrl.value = "";
+
+  try {
+    const res = await getQrLoginCodeApi();
+    // 请求返回时组件可能已经卸载，或者用户已经点了刷新
+    if (epoch !== qrEpoch) return;
+
+    qrCodeCode = res.data.code;
+    qrCodeUrl.value = res.data.qrCodeImage;
+    qrCodeStatus.value = "waiting";
+
+    startQrCountdown(epoch, res.data.expireSeconds || 60); // 二维码过期时间默认 60 秒
+    pollQrCode(epoch);
+  } catch (e) {
+    if (epoch !== qrEpoch) return;
+    qrMaskState.value = "expired";
+  }
+};
+
 watch(loginType, (newVal) => {
   if (newVal === "qrcode") {
     refreshQrCode();
-    qrCodeTimer = window.setInterval(() => {
-      // TODO: 检查二维码状态
-    }, 3000);
   } else {
-    clearInterval(qrCodeTimer);
+    stopQrLogin();
   }
 });
 
 onUnmounted(() => {
-  clearInterval(qrCodeTimer);
+  stopQrLogin();
 });
 
 // 添加 logo 颜色计算
@@ -573,6 +687,12 @@ const logoColor = computed(() => {
         justify-content: center;
         gap: 12px;
         border-radius: 12px;
+      }
+
+      .qrcode-mask-tip {
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+        margin: 0;
       }
     }
 

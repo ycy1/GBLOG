@@ -109,6 +109,11 @@ public class RedisConstants {
     public static final String WX_LOGIN_USER = "wx_login_user:";
 
     /**
+     * 扫码登录状态（值：待扫码/已扫码待确认/已确认/已取消）
+     */
+    public static final String QR_LOGIN = "qr_login:";
+
+    /**
      * 文章阅读量
      */
     public static final String ARTICLE_QUANTITY = "article_quantity";

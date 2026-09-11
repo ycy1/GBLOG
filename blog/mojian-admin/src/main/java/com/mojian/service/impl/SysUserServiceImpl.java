@@ -43,6 +43,7 @@ import java.io.*;
 import java.net.URLEncoder;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -279,10 +280,17 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             // 2. 写入临时文件
             File qrFile = File.createTempFile("qr_" + userId + "_", ".png");
             FileUtil.writeBytes(pngBytes, qrFile);
+
+            MultipartFile mf = new StreamMultipartFile(
+                    "file",
+                    qrFile.toPath(),
+                    Files.probeContentType(qrFile.toPath())   // 可能为 null
+            );
+            File compressFile = FileUtils.compressFile(mf);
             // 3. 上传到文件存储
             String path = DateUtil.parseDateToStr(DateUtil.YYYYMMDD, DateUtil.getNowDate()) + "/qr/";
             String defaultPlatform = fileStorageService.getProperties().getDefaultPlatform();
-            FileInfo fileInfo = fileStorageService.of(qrFile)
+            FileInfo fileInfo = fileStorageService.of(compressFile)
                     .setPlatform(defaultPlatform)
                     .setPath(path)
                     .setSaveFilename(RandomUtil.randomNumbers(2) + "_" + userId + "_qr.png")

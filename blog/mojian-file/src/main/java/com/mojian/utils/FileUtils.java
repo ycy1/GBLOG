@@ -262,6 +262,33 @@ public class FileUtils {
         return tempFile;
     }
 
+    public static boolean isImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return false;
+        }
+
+        // 1. MIME 快速过滤
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            return false;
+        }
+
+        // 2. 后缀过滤
+        String name = file.getOriginalFilename();
+        if (name == null) {
+            return false;
+        }
+        String lower = name.toLowerCase();
+        boolean extOk = lower.endsWith(".jpg") || lower.endsWith(".jpeg")
+                || lower.endsWith(".png") || lower.endsWith(".gif")
+                || lower.endsWith(".bmp") || lower.endsWith(".webp");
+        if (!extOk) {
+            return false;
+        }
+
+        return true;
+    }
+
     public static void main(String[] args) throws Exception {
 //        File file = urlToFile("http://182.92.85.80/group1/M00/00/07/tlxVUGqIRaqAYydCAAAkUuxDWME124.png");
 //        System.out.println(file.getName());

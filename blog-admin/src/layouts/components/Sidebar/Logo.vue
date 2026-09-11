@@ -22,9 +22,6 @@ const logoUrl = import.meta.env.VITE_APP_LOGO
 <style scoped>
 .logo-img {
   transition: transform 0.3s ease;
-}
-
-.logo-img:hover {
-  transform: scale(1.1);
+  border-radius: 50%;
 }
 </style> 

@@ -9,6 +9,8 @@ import com.mojian.dto.EmailRegisterDto;
 import com.mojian.dto.LoginDTO;
 import com.mojian.entity.SysUser;
 import com.mojian.service.AuthService;
+import com.mojian.vo.QrLoginStateVo;
+import com.mojian.vo.QrLoginVo;
 import com.mojian.vo.user.SysUserVo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -16,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import me.zhyd.oauth.model.AuthCallback;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.async.DeferredResult;
 import com.mojian.dto.user.*;
 
 import javax.mail.MessagingException;
@@ -112,6 +115,47 @@ public class AuthController {
     @PostMapping("/api/auth/updateProfile")
     public Result<Boolean> updateProfile(@RequestBody SysUser user) {
         return Result.success(authService.updateProfile(user));
+    }
+
+    @SaIgnore
+    @ApiOperation(value = "生成扫码登录二维码")
+    @GetMapping("/api/auth/qrcode/generate")
+    public Result<QrLoginVo> generateQrLogin() {
+        return Result.success(authService.generateQrLogin());
+    }
+
+    /**
+     * 长轮询扫码登录状态。状态没变化时请求会挂起（最多 25 秒），
+     * 所以前端这个请求的超时必须比 25 秒更长。
+     */
+    @SaIgnore
+    @ApiOperation(value = "长轮询扫码登录状态")
+    @GetMapping("/api/auth/qrcode/poll/{code}")
+    public DeferredResult<Result<QrLoginStateVo>> pollQrLogin(@PathVariable String code) {
+        return authService.pollQrLogin(code);
+    }
+
+    /**
+     * 下面三个由 App 调用，走 /api/auth/** 的常规鉴权（SaTokenConfigure），
+     * 即必须带上 App 自己的登录 token
+     */
+    @ApiOperation(value = "App 扫码（进入待确认）")
+    @PostMapping("/api/auth/qrcode/scan/{code}")
+    public Result<QrLoginStateVo> scanQrLogin(@PathVariable String code) {
+        return Result.success(authService.scanQrLogin(code));
+    }
+
+    @ApiOperation(value = "App 确认登录，返回本次登录的用户信息")
+    @PostMapping("/api/auth/qrcode/confirm/{code}")
+    public Result<LoginUserInfo> confirmQrLogin(@PathVariable String code) {
+        return Result.success(authService.confirmQrLogin(code));
+    }
+
+    @ApiOperation(value = "App 取消登录")
+    @PostMapping("/api/auth/qrcode/cancel/{code}")
+    public Result<Void> cancelQrLogin(@PathVariable String code) {
+        authService.cancelQrLogin(code);
+        return Result.success(null);
     }
 
 }
