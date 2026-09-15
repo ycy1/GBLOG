@@ -11,7 +11,7 @@
  Target Server Version : 80040
  File Encoding         : 65001
 
- Date: 25/08/2026 15:14:21
+ Date: 15/09/2026 10:47:07
 */
 
 SET NAMES utf8mb4;
@@ -237,7 +237,7 @@ CREATE TABLE `gen_table`  (
   `create_time` datetime(0) NULL DEFAULT NULL COMMENT '创建时间',
   `update_time` datetime(0) NULL DEFAULT NULL COMMENT '修改时间',
   PRIMARY KEY (`table_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 21 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '代码生成业务表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 23 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '代码生成业务表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for gen_table_column
@@ -261,7 +261,7 @@ CREATE TABLE `gen_table_column`  (
   `html_type` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '显示类型（文本框、文本域、下拉框、复选框、单选框、日期控件）',
   `sort` int(0) NULL DEFAULT NULL COMMENT '排序',
   PRIMARY KEY (`column_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 265 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '代码生成业务表字段' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 308 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '代码生成业务表字段' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for qrtz_job_details
@@ -331,12 +331,14 @@ CREATE TABLE `sys_article`  (
   `id` bigint(0) NOT NULL AUTO_INCREMENT COMMENT '主键id',
   `user_id` int(0) NOT NULL COMMENT '用户id',
   `category_id` bigint(0) NULL DEFAULT NULL COMMENT '分类id',
+  `pay_rule_id` bigint(0) NULL DEFAULT NULL COMMENT '文章收费标准id',
+  `pay_count` int(0) NULL DEFAULT NULL COMMENT '购买人数',
   `title` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '文章标题',
   `cover` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '文章封面地址',
   `summary` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '文章简介',
   `content` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '文章内容',
   `content_md` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '文章内容md格式',
-  `read_type` int(0) NULL DEFAULT 1 COMMENT '阅读方式 0无需验证 1：评论阅读 2：点赞阅读 3：扫码阅读',
+  `read_type` int(0) NULL DEFAULT 1 COMMENT '阅读方式 0无需验证 1：评论阅读 2：点赞阅读 3：扫码阅读 4：收费阅读',
   `is_stick` int(0) NULL DEFAULT 0 COMMENT '是否置顶 0否 1是',
   `like_count` int(0) NULL DEFAULT NULL COMMENT '文章点赞数',
   `status` int(0) NULL DEFAULT 0 COMMENT '状态 0：下架 1：发布',
@@ -352,7 +354,7 @@ CREATE TABLE `sys_article`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `user_id`(`user_id`) USING BTREE,
   FULLTEXT INDEX `title`(`title`) WITH PARSER `ngram`
-) ENGINE = InnoDB AUTO_INCREMENT = 315 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '博客文章表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 316 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '博客文章表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_article_like
@@ -363,7 +365,24 @@ CREATE TABLE `sys_article_like`  (
   `user_id` int(0) NOT NULL COMMENT '用户id',
   `article_id` int(0) NOT NULL COMMENT '文章id',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 53 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文章点赞表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 54 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文章点赞表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for sys_article_pay_rule
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_article_pay_rule`;
+CREATE TABLE `sys_article_pay_rule`  (
+  `id` bigint(0) NOT NULL AUTO_INCREMENT COMMENT '主键id',
+  `title` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '标题',
+  `pay_type` tinyint(0) NOT NULL DEFAULT 1 COMMENT '收费类型 1单篇付费 2仅会员可读 3会员免费/非会员付费',
+  `price` decimal(10, 2) NOT NULL COMMENT '文章售价（元）',
+  `vip_free` tinyint(0) NOT NULL DEFAULT 0 COMMENT '会员是否免费 0否 1是',
+  `status` tinyint(0) NOT NULL DEFAULT 1 COMMENT '状态 0禁用 1启用',
+  `create_time` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
+  `update_time` datetime(0) NULL DEFAULT NULL COMMENT '修改时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_status`(`status`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文章收费规则表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_article_tag
@@ -374,7 +393,7 @@ CREATE TABLE `sys_article_tag`  (
   `article_id` int(0) NOT NULL COMMENT '文章id',
   `tag_id` int(0) NOT NULL COMMENT '标签id',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1669 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文章标签关联表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1758 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文章标签关联表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_category
@@ -454,8 +473,8 @@ DROP TABLE IF EXISTS `sys_dept`;
 CREATE TABLE `sys_dept`  (
   `id` bigint(0) NOT NULL AUTO_INCREMENT COMMENT '部门ID',
   `parent_id` bigint(0) NULL DEFAULT 0 COMMENT '父部门ID（0表示顶级部门）',
-  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '部门名称',
-  `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '部门编码（可选，用于对接外部系统）',
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '部门名称',
+  `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '部门编码（可选，用于对接外部系统）',
   `leader_id` bigint(0) NULL DEFAULT NULL COMMENT '部门负责人ID（关联用户表）',
   `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '状态：1-启用 0-停用',
   `sort_order` int(0) NULL DEFAULT 0 COMMENT '同级排序权重',
@@ -464,7 +483,7 @@ CREATE TABLE `sys_dept`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_parent_id`(`parent_id`) USING BTREE,
   INDEX `idx_status`(`status`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '部门表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '部门表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_dept_user
@@ -475,12 +494,12 @@ CREATE TABLE `sys_dept_user`  (
   `user_id` bigint(0) NOT NULL COMMENT '用户ID',
   `dept_id` bigint(0) NOT NULL COMMENT '部门ID',
   `is_primary` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否主部门：1-是 0-否（用于发送消息时取主部门）',
-  `position` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '在该部门的职位（可选）',
+  `position` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '在该部门的职位（可选）',
   `create_time` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_user_dept`(`user_id`, `dept_id`) USING BTREE,
   INDEX `idx_dept_id`(`dept_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 14 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户部门关联表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 14 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户部门关联表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_dict
@@ -496,7 +515,7 @@ CREATE TABLE `sys_dict`  (
   `update_time` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '修改时间',
   `sort` int(0) NULL DEFAULT 0 COMMENT '排序',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 39 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '字典表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 51 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '字典表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_dict_data
@@ -513,7 +532,7 @@ CREATE TABLE `sys_dict_data`  (
   `remark` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
   `status` int(0) NULL DEFAULT 1,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 70 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '字典数据表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 115 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '字典数据表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_feedback
@@ -530,6 +549,33 @@ CREATE TABLE `sys_feedback`  (
   `create_time` datetime(0) NULL DEFAULT NULL COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '反馈' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for sys_file_center
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_file_center`;
+CREATE TABLE `sys_file_center`  (
+  `id` bigint(0) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `file_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '关联文件id',
+  `user_id` bigint(0) NOT NULL COMMENT '发起下载的用户ID (用于权限校验)',
+  `business_type` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'none' COMMENT '业务类型 (\"article\",\"\")',
+  `file_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '最终生成的文件名称 (含后缀)',
+  `file_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '本地相对路径 或 OSS的Key (如: export/2026/08/27/task_xxx.xlsx)',
+  `file_size` bigint(0) NULL DEFAULT 0 COMMENT '文件大小 (单位: Byte)',
+  `file_source` tinyint(0) NOT NULL DEFAULT 0 COMMENT '文件来源: 1-用户上传(我的文件), 2-部门, 3-角色, 4-回收站',
+  `original_source` tinyint(0) NULL DEFAULT NULL COMMENT '文件原来源',
+  `file_status` tinyint(0) NOT NULL DEFAULT 0 COMMENT '文件状态: 1-处理中, 2-已完成(成功), 3-失败, 4-已过期/已清理',
+  `fail_reason` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '失败时的错误堆栈信息(用户可读)',
+  `create_time` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
+  `update_time` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '最近更新时间 (用于判断任务是否卡死)',
+  `expire_time` datetime(0) NULL DEFAULT NULL COMMENT '文件过期时间 (建议默认7天后过期)',
+  `download_count` int(0) NULL DEFAULT 0 COMMENT '该文件被下载的次数 (统计冷热数据)',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_file_id`(`file_id`) USING BTREE,
+  INDEX `idx_user_id`(`user_id`) USING BTREE,
+  INDEX `idx_create_time`(`create_time`) USING BTREE,
+  INDEX `idx_status_expire`(`file_status`, `expire_time`) USING BTREE COMMENT '用于定时任务清理过期文件'
+) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文件中心记录表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_file_oss
@@ -590,7 +636,7 @@ CREATE TABLE `sys_job`  (
   `update_time` datetime(0) NULL DEFAULT NULL COMMENT '更新时间',
   `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注信息',
   PRIMARY KEY (`job_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '定时任务调度表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '定时任务调度表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_job_log
@@ -609,7 +655,7 @@ CREATE TABLE `sys_job_log`  (
   `start_time` datetime(0) NULL DEFAULT NULL COMMENT '开始时间',
   `stop_time` datetime(0) NULL DEFAULT NULL COMMENT '结束时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '定时任务调度日志表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '定时任务调度日志表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_menu
@@ -632,7 +678,7 @@ CREATE TABLE `sys_menu`  (
   `perm` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '权限标识',
   `is_external` int(0) NULL DEFAULT 0 COMMENT '是否外链 0:否  1:是',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 165 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '权限资源表 ' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 187 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '权限资源表 ' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_message
@@ -676,7 +722,7 @@ CREATE TABLE `sys_moment_like`  (
   `create_time` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_moment_user`(`moment_id`, `user_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 46 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 48 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_notice
@@ -710,7 +756,7 @@ CREATE TABLE `sys_notifications`  (
   `create_time` datetime(0) NOT NULL COMMENT '通知的创建时间',
   `del_flag` tinyint(0) NULL DEFAULT 0 COMMENT '删除标记 0 未删除 1 已删除',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 60 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '消息通知表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 63 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '消息通知表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_notifications_receiver
@@ -728,7 +774,7 @@ CREATE TABLE `sys_notifications_receiver`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_message_user`(`notification_id`, `user_id`) USING BTREE,
   INDEX `idx_receiver_read`(`user_id`, `create_time`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 15 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 16 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_operate_log
@@ -748,7 +794,41 @@ CREATE TABLE `sys_operate_log`  (
   `class_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '类地址',
   `method_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '方法名',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2345 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 2457 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for sys_order
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_order`;
+CREATE TABLE `sys_order`  (
+  `id` bigint(0) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '订单ID（主键，自增）',
+  `order_no` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '订单编号（业务唯一，对外展示）',
+  `order_type` tinyint(0) UNSIGNED NOT NULL COMMENT '订单类型：1-普通订单 2-秒杀订单 3-拼团订单  4-续费订单',
+  `user_id` bigint(0) UNSIGNED NOT NULL COMMENT '用户ID',
+  `user_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '用户名称',
+  `mobile` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '手机号',
+  `biz_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '业务ID（关联具体业务，如商品ID、课程ID等）',
+  `biz_type` tinyint(0) UNSIGNED NULL DEFAULT NULL COMMENT '业务类型：1-商品 2-课程 3-会员 4-充值 等',
+  `total_amount` decimal(12, 2) NOT NULL COMMENT '订单总金额（原价）',
+  `pay_amount` decimal(12, 2) NOT NULL COMMENT '实付金额',
+  `discount_amount` decimal(12, 2) NOT NULL COMMENT '优惠金额',
+  `currency` char(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'CNY' COMMENT '币种',
+  `status` tinyint(0) UNSIGNED NOT NULL DEFAULT 0 COMMENT '订单状态：0-待支付 1-已支付 2-已完成 3-已取消 4-已退款 5-已关闭',
+  `pay_type` tinyint(0) UNSIGNED NULL DEFAULT NULL COMMENT '支付方式：1-微信 2-支付宝 3-银行卡 4-余额',
+  `pay_time` datetime(0) NULL DEFAULT NULL COMMENT '支付时间',
+  `expire_time` datetime(0) NULL DEFAULT NULL COMMENT '订单过期时间（超时未支付自动关闭）',
+  `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '订单备注',
+  `extra` json NULL COMMENT '扩展字段（JSON，存业务个性化数据）',
+  `create_time` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
+  `update_time` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '修改时间',
+  `is_deleted` tinyint(0) UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_order_no`(`order_no`) USING BTREE,
+  INDEX `idx_user_id`(`user_id`) USING BTREE,
+  INDEX `idx_biz_id`(`biz_id`) USING BTREE,
+  INDEX `idx_status_create_time`(`status`, `create_time`) USING BTREE,
+  INDEX `idx_create_time`(`create_time`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '订单主表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_photo
@@ -774,7 +854,48 @@ CREATE TABLE `sys_photo_tag`  (
   `photo_id` int(0) NOT NULL COMMENT '照片id',
   `tag_id` int(0) NOT NULL COMMENT '标签id',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '照片标签关联表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '照片标签关联表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for sys_refund
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_refund`;
+CREATE TABLE `sys_refund`  (
+  `id` bigint(0) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '退款ID（主键，自增）',
+  `refund_no` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '退款单号（业务唯一，对外展示）',
+  `order_id` bigint(0) UNSIGNED NOT NULL COMMENT '订单ID（关联sys_order.id）',
+  `order_no` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '订单编号（冗余，便于查询）',
+  `user_id` bigint(0) UNSIGNED NOT NULL COMMENT '用户ID（冗余，便于按用户查询）',
+  `user_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '用户名称',
+  `mobile` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '手机号',
+  `refund_type` tinyint(0) UNSIGNED NOT NULL DEFAULT 1 COMMENT '退款类型：1-全额退款 2-部分退款',
+  `refund_reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '退款原因（用户填写）',
+  `refund_amount` decimal(12, 2) NOT NULL COMMENT '申请退款金额',
+  `actual_refund_amount` decimal(12, 2) NOT NULL COMMENT '实际退款金额（审核后确定）',
+  `currency` char(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'CNY' COMMENT '币种',
+  `status` tinyint(0) UNSIGNED NOT NULL DEFAULT 0 COMMENT '退款状态：0-待审核 1-审核通过 2-审核拒绝 3-退款中 4-退款成功 5-退款失败 6-已取消',
+  `refund_channel` tinyint(0) UNSIGNED NULL DEFAULT NULL COMMENT '退款渠道：1-原路退回 2-人工转账',
+  `third_refund_no` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '第三方退款单号（微信/支付宝返回）',
+  `apply_time` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '申请时间',
+  `audit_time` datetime(0) NULL DEFAULT NULL COMMENT '审核时间',
+  `auditor_id` bigint(0) UNSIGNED NULL DEFAULT NULL COMMENT '审核人ID',
+  `audit_remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '审核备注',
+  `refund_time` datetime(0) NULL DEFAULT NULL COMMENT '退款成功时间',
+  `fail_reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '退款失败原因',
+  `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
+  `extra` json NULL COMMENT '扩展字段（JSON，存退款个性化数据）',
+  `create_time` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
+  `update_time` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '修改时间',
+  `is_deleted` tinyint(0) UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_refund_no`(`refund_no`) USING BTREE,
+  INDEX `idx_order_id`(`order_id`) USING BTREE,
+  INDEX `idx_order_no`(`order_no`) USING BTREE,
+  INDEX `idx_user_id`(`user_id`) USING BTREE,
+  INDEX `idx_status_create_time`(`status`, `create_time`) USING BTREE,
+  INDEX `idx_third_refund_no`(`third_refund_no`) USING BTREE,
+  INDEX `idx_create_time`(`create_time`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '退款表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_resource
@@ -820,7 +941,7 @@ CREATE TABLE `sys_role_menu`  (
   `menu_id` int(0) NULL DEFAULT NULL COMMENT '菜单ID',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `role_id`(`role_id`, `menu_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 394 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '角色-权限资源关联表 ' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 456 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '角色-权限资源关联表 ' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_tag
@@ -835,7 +956,7 @@ CREATE TABLE `sys_tag`  (
   `create_time` datetime(0) NULL DEFAULT NULL COMMENT '创建时间',
   `update_time` datetime(0) NULL DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 104 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '标签表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 106 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '标签表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_user
@@ -846,11 +967,11 @@ CREATE TABLE `sys_user`  (
   `username` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '账号',
   `password` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '登录密码',
   `openid` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT 'openid',
-  `sex` int(0) NULL DEFAULT NULL COMMENT '性别',
+  `sex` int(0) NULL DEFAULT 0 COMMENT '性别 0.未知 1.男 2.女',
   `user_tags` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '标签',
   `create_time` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
   `update_time` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '更新时间',
-  `status` int(0) NULL DEFAULT 1 COMMENT '状态 0:禁用 1:正常',
+  `status` int(0) NULL DEFAULT 1 COMMENT '状态 0:锁定 1:正常',
   `ip` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT 'ip地址',
   `ip_location` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT 'ip来源',
   `os` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '登录系统',
@@ -868,7 +989,7 @@ CREATE TABLE `sys_user`  (
   `area_zh` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '地区中文',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `username`(`username`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 19 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '用户信息表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 25 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '用户信息表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_user_role
@@ -879,7 +1000,7 @@ CREATE TABLE `sys_user_role`  (
   `role_id` int(0) NULL DEFAULT NULL COMMENT '角色ID',
   `user_id` int(0) NULL DEFAULT NULL COMMENT '用户ID',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 79 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '系统管理 - 用户角色关联表 ' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 80 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '系统管理 - 用户角色关联表 ' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for sys_web_config
