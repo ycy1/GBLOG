@@ -2,6 +2,7 @@ package com.mojian.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.google.gson.JsonObject;
 import com.mojian.utils.DateUtil;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -48,8 +49,14 @@ public class SysArticle implements Serializable {
     @ApiModelProperty(value = "文章内容md格式")
     private String contentMd;
 
-    @ApiModelProperty(value = "阅读方式 0无需验证 1：评论阅读 2：点赞阅读 3：扫码阅读")
+    @ApiModelProperty(value = "阅读方式 0无需验证 1：评论阅读 2：点赞阅读 3：扫码阅读 4：收费阅读")
     private Integer readType;
+
+    @ApiModelProperty(value = "文章收费标准id（readType=4 时指向 sys_article_pay_rule.id）")
+    private Long payRuleId;
+
+    @ApiModelProperty(value = "购买人数")
+    private Integer payCount;
 
     @ApiModelProperty(value = "是否置顶 0否 1是")
     private Integer isStick;
@@ -88,4 +95,24 @@ public class SysArticle implements Serializable {
     @TableField(fill = FieldFill.UPDATE)
     @JsonFormat(pattern = DateUtil.YYYY_MM_DD_HH_MM_SS)
     private LocalDateTime updateTime;
+
+
+    // url name title
+    public JsonObject getImageUrlJson() {
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("url", this.cover);
+        jsonObject.addProperty("name", this.title);
+        jsonObject.addProperty("title", this.title);
+        jsonObject.addProperty("introduction", this.title);
+        return jsonObject;
+    }
+
+    // title content thumbMediaId
+    public JsonObject getDraftJson(String thumbMediaId) {
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("title", this.title);
+        jsonObject.addProperty("content", this.content);
+        jsonObject.addProperty("thumbMediaId", thumbMediaId);
+        return jsonObject;
+    }
 }

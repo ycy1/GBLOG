@@ -27,9 +27,29 @@
         </dependency>
 
         <dependency>
+            <groupId>com.mojian</groupId>
+            <artifactId>mojian-api</artifactId>
+            <version>${package.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
             <groupId>com.github.binarywang</groupId>
             <artifactId>weixin-java-mp</artifactId>
             <version>4.7.7-20250725.114118</version>
+        </dependency>
+
+        <!--微信sdk-->
+        <dependency>
+            <groupId>com.github.wechatpay-apiv3</groupId>
+            <artifactId>wechatpay-apache-httpclient</artifactId>
+            <version>0.4.5</version>
+        </dependency>
+        <!--支付宝sdk-->
+        <dependency>
+            <groupId>com.alipay.sdk</groupId>
+            <artifactId>alipay-sdk-java</artifactId>
+            <version>4.34.0.ALL</version>
         </dependency>
 
     </dependencies>

@@ -354,6 +354,8 @@ public class GenTableServiceImpl implements GenTableService {
             return "mapper/" + className + "Mapper.xml";
         } else if (template.contains("vue.vue.vm")) {
             return "vue/" + className.toLowerCase() + "/index.vue";
+        } else if (template.contains("api.ts.vm")) {
+            return "api/" + className.toLowerCase() + ".ts";
         }
         return null;
     }

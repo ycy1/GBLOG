@@ -124,6 +124,13 @@
                   loading: exportLoadingId === scope.row.id,
                   disabled: !hasPermission('sys:article:word'),
                   command: { type: 'exportWord', row: scope.row }
+                },
+                {
+                  label: '同步公众号',
+                  icon: 'Promotion',
+                  loading: syncLoadingId === scope.row.id,
+                  disabled: !hasPermission('sys:article:sync'),
+                  command: { type: 'sync', row: scope.row }
                 }
               ]"
               @command="handleActionCommand"
@@ -217,10 +224,8 @@
         <el-row :gutter="20" class="mb-20">
           <el-col :span="8">
             <el-form-item label="阅读方式" prop="readType">
-              <el-select v-model="form.readType" placeholder="请选择阅读方式">
-                <el-option label="免费" :value="1" />
-                <el-option label="会员" :value="2" />
-                <el-option label="付费" :value="3" />
+              <el-select v-model="form.readType" placeholder="请选择阅读方式" @change="handleReadTypeChange">
+                <el-option v-for="item in dict.options('article_read_type')" :key="item.value" :label="item.label" :value="item.value" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -238,6 +243,15 @@
             </el-form-item>
           </el-col>
         </el-row>
+
+        <el-form-item label="收费标准" prop="payRuleId" v-if="form.readType === 4" class="mb-20">
+          <el-select v-model="form.payRuleId" placeholder="请选择收费标准" clearable style="width: 100%">
+            <el-option v-for="item in payRuleOptions" :key="item.id" :label="payRuleLabel(item)" :value="item.id">
+              <span>{{ item.title || '未命名规则' }}</span>
+              <span class="pay-rule-meta">{{ payRuleTypeLabel(item) }} {{ payRulePrice(item) }}</span>
+            </el-option>
+          </el-select>
+        </el-form-item>
 
         <el-form-item label="转载地址" prop="originalUrl" v-if="form.isOriginal === 0" class="mb-20">
           <el-input v-model="form.originalUrl" placeholder="请输入转载地址" />
@@ -353,11 +367,14 @@ import { getCategoryListApi } from '@/api/article/category'
 import { getTagListApi } from '@/api/article/tag'
 import {
   getArticleListApi, getDetailApi, deleteArticleApi,
-  addArticleApi, updateArticleApi, updateStatusApi, reptileArticleApi, exportArticleWordApi
+  addArticleApi, updateArticleApi, updateStatusApi, reptileArticleApi, exportArticleWordApi,
+  syncArticleToMpApi
 } from '@/api/article'
 import { saveAs } from 'file-saver'
 import { uploadApi, deleteFileApi, uploadImageApi } from '@/api/file'
 import { getDictDataByDictTypesApi } from '@/api/system/dict'
+import { listPayRuleApi } from '@/api/article/payrule'
+import { useDict } from '@/utils/dictCache'
 import { useUserStore } from '@/store/modules/user'
 import { useRouter } from 'vue-router'
 
@@ -389,6 +406,9 @@ const handleActionCommand = async (action: any) => {
       break
     case 'exportWord':
       handleExportWord(row)
+      break
+    case 'sync':
+      handleSync(row)
       break
   }
 }
@@ -442,7 +462,8 @@ const form = reactive<any>({
   tags: [],
   content: '',
   contentMd: '',
-  readType: 1,
+  readType: 0,
+  payRuleId: undefined,
   isOriginal: 1,
   originalUrl: '',
   isStick: 0,
@@ -464,6 +485,25 @@ const videoInput = ref('')
 
 const tagName = ref('')
 const categoryName = ref('')
+
+// 收费标准选项（只取启用中的规则）
+const payRuleOptions = ref<any[]>([])
+const dict = useDict('article_pay_type', 'article_read_type')
+
+const payRuleTypeLabel = (item: any) => dict.label('article_pay_type', item.payType, '')
+
+const payRulePrice = (item: any) => `¥${Number(item.price ?? 0).toFixed(2)}`
+
+const payRuleLabel = (item: any) =>
+  `${item.title || '未命名规则'}（${payRuleTypeLabel(item)} ${payRulePrice(item)}）`
+
+/** 切到非收费阅读时清掉已选收费标准，避免提交后被后端置空的脏值 */
+const handleReadTypeChange = (val: any) => {
+  if (val !== 4) {
+    form.payRuleId = undefined
+    formRef.value?.clearValidate('payRuleId')
+  }
+}
 
 
 
@@ -487,6 +527,20 @@ const rules = reactive<FormRules>({
   ],
   readType: [
     { required: true, message: '请选择阅读方式', trigger: 'change' }
+  ],
+  payRuleId: [
+    {
+      required: true,
+      message: '收费阅读必须选择收费标准',
+      trigger: 'change',
+      validator: (rule: any, value: any, callback: any) => {
+        if (form.readType === 4 && !value) {
+          callback(new Error('收费阅读必须选择收费标准'))
+        } else {
+          callback()
+        }
+      }
+    }
   ],
   isOriginal: [
     { required: true, message: '请选择文章类型', trigger: 'change' }
@@ -646,6 +700,12 @@ const getStatusList = async () => {
   yesNoOptions.value = data.sys_yes_no.list
 }
 
+// 获取启用中的收费标准
+const getPayRuleList = async () => {
+  const { data } = await listPayRuleApi({ pageNum: 1, pageSize: 100, status: 1 })
+  payRuleOptions.value = data.records || []
+}
+
 // 表格选择项变化
 const handleSelectionChange = (selection: any[]) => {
   selectedIds.value = selection.map(item => item.id)
@@ -723,6 +783,32 @@ const handleExportWord = async (row: any) => {
   }
 }
 
+// 同步文章到公众号（后端会在公众号草稿箱创建一篇草稿）
+const syncLoadingId = ref<number | null>(null)
+const handleSync = (row: any) => {
+  if (syncLoadingId.value) return
+  const appid = import.meta.env.VITE_MP_APPID
+  if (!appid) {
+    ElMessage.error('未配置公众号 appid（VITE_MP_APPID）')
+    return
+  }
+  ElMessageBox.confirm(`是否将「${row.title}」同步到公众号草稿箱?`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    syncLoadingId.value = row.id
+    try {
+      await syncArticleToMpApi(appid, row.id)
+      ElMessage.success('已同步到公众号草稿箱')
+    } catch (error) {
+      // 失败提示由 request 拦截器统一弹出
+    } finally {
+      syncLoadingId.value = null
+    }
+  }).catch(() => { })
+}
+
 // 发布文章
 const handleChangeStatus = (row: any) => {
   updateStatusApi({ id: row.id, status: row.status }).then((res) => {
@@ -753,6 +839,8 @@ const clearForm = () => {
   form.tags = []
   form.content = ''
   form.contentMd = ''
+  form.readType = 0
+  form.payRuleId = undefined
   form.originalUrl = ''
   form.isStick = 0
   form.status = 1
@@ -838,6 +926,7 @@ onMounted(() => {
   })
 
   getStatusList()
+  getPayRuleList()
 })
 
 // 图片上传前的处理
@@ -863,6 +952,13 @@ const beforeAvatarUpload = (file: File) => {
 </script>
 
 <style lang="scss" scoped>
+.pay-rule-meta {
+  float: right;
+  margin-left: 16px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
 .avatar-uploader {
   :deep(.el-upload) {
     border: 2px dashed var(--el-border-color-lighter);

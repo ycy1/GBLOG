@@ -4,19 +4,10 @@
     <div class="search-wrapper">
       <el-form ref="queryFormRef" :model="queryParams" :inline="true" class="search-form">
         <el-form-item label="关键字" prop="keyword">
-          <el-input
-            v-model="queryParams.keyword"
-            placeholder="请输入部门名称或编码"
-            clearable
-            @keyup.enter="handleQuery"
-          />
+          <el-input v-model="queryParams.keyword" placeholder="请输入部门名称或编码" clearable @keyup.enter="handleQuery" />
         </el-form-item>
         <el-form-item label="所属部门">
-          <DeptSelect
-            v-model="queryParams.parentIds"
-            placeholder="请选择所属部门"
-            style="width: 220px"
-          />
+          <DeptSelect v-model="queryParams.parentIds" placeholder="请选择所属部门" style="width: 220px" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-select v-model="queryParams.status" placeholder="请选择状态" clearable>
@@ -36,24 +27,14 @@
       <template #header>
         <div class="card-header">
           <ButtonGroup>
-            <el-button
-              v-permission="['sys:dept:add']"
-              type="primary"
-              icon="Plus"
-              @click="handleAdd()"
-            >新增</el-button>
+            <el-button v-permission="['sys:dept:add']" type="primary" icon="Plus" @click="handleAdd()">新增</el-button>
           </ButtonGroup>
         </div>
       </template>
 
       <!-- 数据表格 -->
-      <el-table
-        v-loading="loading"
-        :data="deptList"
-        row-key="id"
-        :tree-props="{ children: 'children' }"
-        default-expand-all
-      >
+      <el-table v-loading="loading" :data="deptList" row-key="id" :tree-props="{ children: 'children' }"
+        default-expand-all>
         <el-table-column label="部门名称" prop="name" width="200" show-overflow-tooltip />
         <el-table-column label="部门编码" prop="code" align="center" width="200" show-overflow-tooltip>
           <template #default="{ row }">
@@ -84,69 +65,47 @@
           <template #default="{ row }">
             <span>{{ validate.formatTime(row.createTime, 'YYYY-MM-DD') || '-' }}</span>
           </template>
-        </el-table-column>  
+        </el-table-column>
         <el-table-column label="操作" align="center" width="280" fixed="right">
           <template #default="scope">
-            <TableMoreActions
-              :actions="[
-                {
-                  label: '修改',
-                  icon: 'Edit',
-                  disabled: !hasPermission('sys:dept:update'),
-                  command: { type: 'edit', row: scope.row }
-                },
-                {
-                  label: '人员',
-                  icon: 'User',
-                  disabled: !hasPermission('sys:dept:user:list'),
-                  command: { type: 'members', row: scope.row }
-                },
-                {
-                  label: '添加子级部门',
-                  icon: 'Plus',
-                  disabled: !hasPermission('sys:dept:add'),
-                  command: { type: 'addChild', row: scope.row }
-                },
-                {
-                  label: '删除',
-                  type: 'danger',
-                  icon: 'Delete',
-                  disabled: !hasPermission('sys:dept:delete'),
-                  command: { type: 'delete', row: scope.row }
-                }
-              ]"
-              @command="handleActionCommand"
-            />
+            <TableMoreActions :actions="[
+              {
+                label: '修改',
+                icon: 'Edit',
+                disabled: !hasPermission('sys:dept:update'),
+                command: { type: 'edit', row: scope.row }
+              },
+              {
+                label: '人员',
+                icon: 'User',
+                disabled: !hasPermission('sys:dept:user:list'),
+                command: { type: 'members', row: scope.row }
+              },
+              {
+                label: '添加子级部门',
+                icon: 'Plus',
+                disabled: !hasPermission('sys:dept:add'),
+                command: { type: 'addChild', row: scope.row }
+              },
+              {
+                label: '删除',
+                type: 'danger',
+                icon: 'Delete',
+                disabled: !hasPermission('sys:dept:delete'),
+                command: { type: 'delete', row: scope.row }
+              }
+            ]" @command="handleActionCommand" />
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
     <!-- 添加或修改部门对话框 -->
-    <el-dialog
-      :title="dialog.title"
-      v-model="dialog.visible"
-      width="600px"
-      append-to-body
-      destroy-on-close
-    >
-      <el-form
-        ref="deptFormRef"
-        :model="deptForm"
-        :rules="rules"
-        label-width="100px"
-      >
+    <el-dialog :title="dialog.title" v-model="dialog.visible" width="600px" append-to-body destroy-on-close>
+      <el-form ref="deptFormRef" :model="deptForm" :rules="rules" label-width="100px">
         <el-form-item label="上级部门" prop="parentId">
-          <el-tree-select
-            v-model="deptForm.parentId"
-            :data="parentOptions"
-            :props="{ label: 'name', value: 'id' }"
-            value-key="id"
-            placeholder="选择上级部门"
-            check-strictly
-            :render-after-expand="false"
-            style="width: 100%"
-          />
+          <el-tree-select v-model="deptForm.parentId" :data="parentOptions" :props="{ label: 'name', value: 'id' }"
+            value-key="id" placeholder="选择上级部门" check-strictly :render-after-expand="false" style="width: 100%" />
         </el-form-item>
         <el-form-item label="部门名称" prop="name">
           <el-input v-model="deptForm.name" placeholder="请输入部门名称" />
@@ -176,20 +135,10 @@
     </el-dialog>
 
     <!-- 部门人员弹窗 -->
-    <el-dialog
-      :title="memberDialog.title"
-      v-model="memberDialog.visible"
-      width="700px"
-      append-to-body
-      destroy-on-close
-    >
+    <el-dialog :title="memberDialog.title" v-model="memberDialog.visible" width="700px" append-to-body destroy-on-close>
       <div class="member-toolbar">
-        <el-button
-          v-if="hasPermission('sys:dept:user:add')"
-          type="primary"
-          icon="Plus"
-          @click="openAddMemberDialog"
-        >添加人员</el-button>
+        <el-button v-if="hasPermission('sys:dept:user:add')" type="primary" icon="Plus"
+          @click="openAddMemberDialog">添加人员</el-button>
       </div>
       <el-table v-loading="memberLoading" :data="memberList" style="width: 100%">
         <el-table-column label="昵称" prop="nickname" align="center" show-overflow-tooltip />
@@ -208,36 +157,19 @@
         </el-table-column>
       </el-table>
       <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="memberQuery.pageNum"
-          v-model:page-size="memberQuery.pageSize"
-          :page-sizes="[10, 20, 30, 50]"
-          :total="memberTotal"
-          :background="true"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="getMembers"
-          @current-change="getMembers"
-        />
+        <el-pagination v-model:current-page="memberQuery.pageNum" v-model:page-size="memberQuery.pageSize"
+          :page-sizes="[10, 20, 30, 50]" :total="memberTotal" :background="true"
+          layout="total, sizes, prev, pager, next, jumper" @size-change="getMembers" @current-change="getMembers" />
       </div>
     </el-dialog>
 
     <!-- 添加部门人员弹窗 -->
-    <el-dialog
-      v-model="addMemberDialog.visible"
-      title="添加人员"
-      width="700px"
-      append-to-body
-      destroy-on-close
-    >
+    <el-dialog v-model="addMemberDialog.visible" title="添加人员" width="700px" append-to-body destroy-on-close>
       <div class="search-wrapper">
         <el-form :inline="true" @submit.prevent>
           <el-form-item label="关键字">
-            <el-input
-              v-model="addUserQuery.keyword"
-              placeholder="请输入用户名/昵称/账号搜索"
-              clearable
-              @keyup.enter="getAddUserList"
-            />
+            <el-input v-model="addUserQuery.keyword" placeholder="请输入用户名/昵称/账号搜索" clearable
+              @keyup.enter="getAddUserList" />
           </el-form-item>
           <el-form-item>
             <el-button type="primary" icon="Search" @click="getAddUserList">搜索</el-button>
@@ -245,14 +177,8 @@
           </el-form-item>
         </el-form>
       </div>
-      <el-table
-        ref="addUserTableRef"
-        v-loading="addUserLoading"
-        :data="addUserList"
-        height="360"
-        @row-click="handleAddUserRowClick"
-        @selection-change="handleAddUserSelectionChange"
-      >
+      <el-table ref="addUserTableRef" v-loading="addUserLoading" :data="addUserList" height="360"
+        @row-click="handleAddUserRowClick" @selection-change="handleAddUserSelectionChange">
         <el-table-column type="selection" width="55" />
         <el-table-column label="昵称" prop="nickname" align="center" show-overflow-tooltip />
         <el-table-column label="用户名" prop="username" align="center" show-overflow-tooltip />
@@ -270,16 +196,10 @@
         </el-table-column>
       </el-table>
       <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="addUserQuery.pageNum"
-          v-model:page-size="addUserQuery.pageSize"
-          :page-sizes="[10, 20, 30, 50]"
-          :total="addUserTotal"
-          :background="true"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="getAddUserList"
-          @current-change="getAddUserList"
-        />
+        <el-pagination v-model:current-page="addUserQuery.pageNum" v-model:page-size="addUserQuery.pageSize"
+          :page-sizes="[10, 20, 30, 50]" :total="addUserTotal" :background="true"
+          layout="total, sizes, prev, pager, next, jumper" @size-change="getAddUserList"
+          @current-change="getAddUserList" />
       </div>
       <template #footer>
         <div class="dialog-footer">
@@ -593,7 +513,7 @@ const handleDelete = (row: any) => {
       getList()
     } catch (error) {
     }
-  }).catch(() => {})
+  }).catch(() => { })
 }
 
 // 查看部门人员

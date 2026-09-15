@@ -5,6 +5,7 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.thread.ThreadUtil;
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.deepoove.poi.XWPFTemplate;
@@ -17,13 +18,16 @@ import com.mojian.common.Constants;
 import com.mojian.common.ResultCode;
 import com.mojian.dto.article.ArticleQueryDto;
 import com.mojian.entity.SysArticle;
+import com.mojian.entity.SysArticlePayRule;
 import com.mojian.entity.SysCategory;
 import com.mojian.entity.SysTag;
 import com.mojian.exception.ServiceException;
 import com.mojian.mapper.SysArticleMapper;
+import com.mojian.mapper.SysArticlePayRuleMapper;
 import com.mojian.mapper.SysCategoryMapper;
 import com.mojian.mapper.SysTagMapper;
 import com.mojian.service.SysArticleService;
+import com.mojian.service.WxOutService;
 import com.mojian.utils.AiUtil;
 import com.mojian.utils.DateUtil;
 import com.mojian.utils.FileUtils;
@@ -65,6 +69,13 @@ public class SysArticleServiceImpl extends ServiceImpl<SysArticleMapper, SysArti
 
     private final AiUtil aiUtil;
     private final SysCategoryMapper sysCategoryMapper;
+    private final WxOutService wxOutService;
+    private final SysArticlePayRuleMapper sysArticlePayRuleMapper;
+
+    /** 阅读方式：收费阅读 */
+    private static final int READ_TYPE_PAID = 4;
+    /** 收费标准状态：启用 */
+    private static final int RULE_STATUS_ENABLED = 1;
 
     @Override
     public IPage<ArticleListVo> selectPage(ArticleQueryDto articleQueryDto) {
@@ -84,6 +95,11 @@ public class SysArticleServiceImpl extends ServiceImpl<SysArticleMapper, SysArti
         //获取标签
         List<String> tags = sysTagMapper.getTagNameByArticleId(id);
         sysArticleDetailVo.setTags(tags);
+
+        //收费阅读回显所选收费标准
+        if (sysArticle.getPayRuleId() != null) {
+            sysArticleDetailVo.setPayRule(sysArticlePayRuleMapper.selectById(sysArticle.getPayRuleId()));
+        }
         return sysArticleDetailVo;
     }
 
@@ -95,6 +111,7 @@ public class SysArticleServiceImpl extends ServiceImpl<SysArticleMapper, SysArti
         BeanUtils.copyProperties(sysArticle, obj);
         obj.setUserId(StpUtil.getLoginIdAsLong());
 
+        applyPayRule(obj);
         //添加分类
         addCategory(sysArticle, obj);
         baseMapper.insert(obj);
@@ -129,8 +146,15 @@ public class SysArticleServiceImpl extends ServiceImpl<SysArticleMapper, SysArti
             }
         }
 
+        applyPayRule(obj);
         addCategory(sysArticle, obj);
         baseMapper.updateById(obj);
+        //field-strategy=not_empty 会跳过 null 字段，updateById 无法把 pay_rule_id 置空，需显式清掉
+        if (obj.getPayRuleId() == null) {
+            baseMapper.update(null, new LambdaUpdateWrapper<SysArticle>()
+                    .eq(SysArticle::getId, obj.getId())
+                    .set(SysArticle::getPayRuleId, null));
+        }
 
         //先删除标签在新增标签
         sysTagMapper.deleteArticleTagsByArticleIds(Collections.singletonList(obj.getId()));
@@ -251,6 +275,19 @@ public class SysArticleServiceImpl extends ServiceImpl<SysArticleMapper, SysArti
                 .body(byteArray);
     }
 
+    @Override
+    public Boolean sync(String appid, Long id) {
+        SysArticle article = baseMapper.selectById(id);
+
+        try {
+            String thumbMediaId = wxOutService.getImageUrl(appid, article.getImageUrlJson()).get("mediaId").getAsString();
+            wxOutService.addDraft(appid, article.getDraftJson(thumbMediaId));
+        } catch (Exception e) {
+            throw new ServiceException(e.getMessage());
+        }
+        return true;
+    }
+
     private List<File> convertMd(ArticleDetailVo detailVo) {
         StringBuilder result = new StringBuilder();
         List<File> imgFiles = new ArrayList<>();
@@ -282,6 +319,26 @@ public class SysArticleServiceImpl extends ServiceImpl<SysArticleMapper, SysArti
             throw new ServiceException("md转换失败");
         }
         return imgFiles;
+    }
+
+    /**
+     * 校验并落地收费标准：收费阅读必须选择启用状态的收费标准，其余阅读方式不保留收费标准
+     */
+    private void applyPayRule(SysArticle article) {
+        if (article.getReadType() == null || article.getReadType() != READ_TYPE_PAID) {
+            article.setPayRuleId(null);
+            return;
+        }
+        if (article.getPayRuleId() == null) {
+            throw new ServiceException("收费阅读必须选择收费标准");
+        }
+        SysArticlePayRule rule = sysArticlePayRuleMapper.selectById(article.getPayRuleId());
+        if (rule == null) {
+            throw new ServiceException("所选收费标准不存在");
+        }
+        if (rule.getStatus() == null || rule.getStatus() != RULE_STATUS_ENABLED) {
+            throw new ServiceException("所选收费标准已禁用");
+        }
     }
 
     private void addCategory(SysArticleDetailVo sysArticle, SysArticle obj) {

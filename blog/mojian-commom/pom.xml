@@ -230,6 +230,13 @@
             <artifactId>pdfbox</artifactId>
             <version>3.0.1</version>
         </dependency>
+
+        <!-- 监听数据库 Binlog -->
+        <dependency>
+            <groupId>com.kuquwu</groupId>
+            <artifactId>canal-spring-boot-starter</artifactId>
+            <version>1.2.8</version>
+        </dependency>
     </dependencies>
 
     <build>

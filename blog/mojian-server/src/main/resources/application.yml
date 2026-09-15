@@ -11,6 +11,12 @@ spring:
   profiles:
     active: dev
 
+
+  config:
+    import:
+      - classpath:application-wx.yml  # 微信模块
+      - classpath:application-file.yml # 文件模块
+
 ############## Sa-Token 配置 (文档: https://sa-token.cc) ##############
 sa-token:
   # token 名称（同时也是 cookie 名称）
@@ -43,6 +49,11 @@ mybatis-plus:
       #驼峰下划线转换
       column-underline: true
       db-type: mysql
+      #逻辑删除：实体中字段名为 isDeleted 的自动生效，无需再加 @TableLogic
+      #注意：同名字段会被全部接管，新实体若该字段另有语义请改用别的字段名
+      logic-delete-field: isDeleted
+      logic-not-delete-value: 0
+      logic-delete-value: 1
     #刷新mapper 调试神器
     refresh: true
   # 原生配置
@@ -54,6 +65,7 @@ mybatis-plus:
 logging:
   level:
     com.mojian.mapper.*:  debug
+#    com.zaxxer.hikari: DEBUG
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%thread]){cyan} %clr(%logger{36}){blue} %msg%n"
 #    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mojian.mapper.SysArticlePayRuleMapper">
+
+    <select id="selectPageList" resultType="com.mojian.entity.SysArticlePayRule">
+        SELECT id, title, pay_type, price, vip_free, status, create_time, update_time
+        FROM sys_article_pay_rule
+        <where>
+            <if test="query.title != null and query.title != ''">
+                AND title LIKE CONCAT('%', #{query.title}, '%')
+            </if>
+            <if test="query.payType != null">
+                AND pay_type = #{query.payType}
+            </if>
+            <if test="query.vipFree != null">
+                AND vip_free = #{query.vipFree}
+            </if>
+            <if test="query.status != null">
+                AND status = #{query.status}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>

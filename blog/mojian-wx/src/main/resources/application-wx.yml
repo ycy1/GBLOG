@@ -14,6 +14,6 @@ wx:
         token: WnbVm6GTQj4BPmLliSday4K # 接口配置里的Token值
         aesKey: UjBF0GHnIfsoBCCW5UuHBI8jALVX9kfb9KyEyZE0TUx # 接口配置里的EncodingAESKey值
       - appId: wx5dd60c0ef238bb2e # 第二个公众号的appid，以下同上
-        secret: 3d632689e04d4ed3f554591ff402994b
+        secret: 397971edeb8961a51b1a4d02c4935ba1
         token: WnbVm6GTQj4BPmLliSday4K
         aesKey: UjBF0GHnIfsoBCCW5UuHBI8jALVX9kfb9KyEyZE0TUx

@@ -59,4 +59,12 @@ public interface SysArticleService extends IService<SysArticle> {
      * @param id
      */
     ResponseEntity<byte[]> exportWord(Long id);
+
+    /**
+     * 同步文章到公众号
+     * @param id 文章id
+     *           appid
+     * @return
+     */
+    Boolean sync(String appid, Long id);
 }

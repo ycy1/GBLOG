@@ -3,6 +3,7 @@ package com.mojian.quartz;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mojian.entity.SysFileCenter;
 import com.mojian.mapper.SysFileCenterMapper;
+import com.mojian.wx.service.WxPayService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

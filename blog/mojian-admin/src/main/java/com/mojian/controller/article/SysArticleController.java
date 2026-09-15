@@ -80,4 +80,11 @@ public class SysArticleController {
     public ResponseEntity<byte[]> exportWord(@PathVariable Long id) {
         return sysArticleService.exportWord(id);
     }
+
+    @GetMapping("/sync/{appid}/{id}")
+    @ApiOperation(value = "同步文章到公众号")
+    @SaCheckPermission("sys:article:sync")
+    public Result<Boolean> sync(@PathVariable Long id, @PathVariable String appid) {
+        return Result.success(sysArticleService.sync(appid, id));
+    }
 }

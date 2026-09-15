@@ -69,3 +69,11 @@ export function exportArticleWordApi(id: any) {
     responseType: 'blob'
   })
 }
+
+// 同步文章到公众号（后端会在公众号里创建一篇草稿）
+export function syncArticleToMpApi(appid: string, id: any) {
+  return request({
+    url: `/sys/article/sync/${appid}/${id}`,
+    method: 'get'
+  })
+}

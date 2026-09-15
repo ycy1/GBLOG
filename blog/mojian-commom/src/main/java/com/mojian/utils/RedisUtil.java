@@ -1,6 +1,9 @@
 package com.mojian.utils;
 
+import io.lettuce.core.ClientOptions;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;

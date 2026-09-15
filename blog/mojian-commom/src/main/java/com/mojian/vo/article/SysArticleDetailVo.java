@@ -1,5 +1,6 @@
 package com.mojian.vo.article;
 
+import com.mojian.entity.SysArticlePayRule;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -31,8 +32,14 @@ public class SysArticleDetailVo {
     @ApiModelProperty(value = "文章内容md格式")
     private String contentMd;
 
-    @ApiModelProperty(value = "阅读方式 0无需验证 1：评论阅读 2：点赞阅读 3：扫码阅读")
+    @ApiModelProperty(value = "阅读方式 0无需验证 1：评论阅读 2：点赞阅读 3：扫码阅读 4：收费阅读")
     private Integer readType;
+
+    @ApiModelProperty(value = "文章收费标准id（readType=4 时必填）")
+    private Long payRuleId;
+
+    @ApiModelProperty(value = "文章收费标准详情（readType=4 时返回）")
+    private SysArticlePayRule payRule;
 
     @ApiModelProperty(value = "是否置顶 0否 1是")
     private Integer isStick;

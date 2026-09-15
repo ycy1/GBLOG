@@ -19,6 +19,11 @@
 *.ipr
 workspace.xml
 
+# 应用程序生成的文件
+*.properties
+*.yml
+*.pem
+
 ### NetBeans ###
 /nbproject/private/
 /build/

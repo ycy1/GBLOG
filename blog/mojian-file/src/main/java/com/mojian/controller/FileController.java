@@ -174,7 +174,8 @@ public class FileController {
             fileStorageService.delete(url);
         } catch (Exception e) {
 //            return Result.error("文件不存在");
-            log.error("文件删除异常,{}", e.getMessage());
+            log.error("服务器文件删除异常,{}", e.getMessage());
+            fileDetailService.delete(url); //删除数据库记录
         }
         return Result.success();
     }

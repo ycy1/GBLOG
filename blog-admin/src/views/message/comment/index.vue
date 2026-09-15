@@ -59,7 +59,7 @@
           <el-table-column type="selection"  width="55" align="center" />
           <el-table-column label="用户昵称" align="center" width="120" prop="nickname" show-overflow-tooltip />
           <el-table-column label="回复人昵称" align="center" width="120" prop="replyNickname" show-overflow-tooltip />
-          <el-table-column label="文章标题" align="center" prop="articleTitle" show-overflow-tooltip />
+          <el-table-column label="文章标题" align="center" prop="articleTitle" width="150" show-overflow-tooltip />
           <el-table-column label="评论类型" align="center" width="100">
             <template #default="scope">
               <el-tag :type="scope.row.commentType === 2 ? 'success' : 'primary'" size="small">

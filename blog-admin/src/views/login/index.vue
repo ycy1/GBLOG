@@ -272,6 +272,7 @@ const login = () => {
     .login(loginForm)
     .then(() => {
       sliderVerifyRef?.value?.verifySuccessEvent();
+      console.log(userStore);
       router.push("/");
       ElMessage.success("登录成功");
     })

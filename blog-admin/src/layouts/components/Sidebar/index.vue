@@ -184,6 +184,9 @@
     }
   }
 
+  :deep(.el-scrollbar) {
+      max-height: 666px !important; // 侧边栏高度
+  }
   :deep(.el-scrollbar__view) {
     height: 100% !important;
   }
