@@ -5,11 +5,11 @@ spring:
     multipart:
       max-file-size: 1024MB
       max-request-size: 1024MB
-  datasource: # 182.92.85.80  03171122991j!
-    url: jdbc:mysql://182.92.85.80:3306/shiyi_blog?characterEncoding=UTF-8&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai&tinyInt1isBit=false&allowPublicKeyRetrieval=true
+  datasource: 
+    url: jdbc:mysql://182.92.**:3306/shiyi_blog?characterEncoding=UTF-8&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai&tinyInt1isBit=false&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
-    password: 03171122991j!
+    password: 03***91j!
     hikari:
       # 最小空闲连接数
       minimum-idle: 5
@@ -31,7 +31,7 @@ spring:
       pool-name: HikariPool-1
   redis:
     host: 182.92.85.80
-    password: 03171122991j!
+    password: 031***91j!
     port: 6379
     timeout: 5000
     database: 8
@@ -73,8 +73,8 @@ knife4j:
 #==============================公众号配置==============================
 wechat:
   # 小程序
-  appletAppId: wx8cfc77c51b054d58
-  appletSecret: f9722d1330ef37754b0262cd22954184
+  appletAppId: wx8cfc77**4d58
+  appletSecret: f9722****2cd22954184
 
 
 #==============================豆包推理AI配置=======================================
