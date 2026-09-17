@@ -9,11 +9,11 @@ wx:
       password:
       timeout: 2000
     configs:
-      - appId: wx5fb2e98b5acafd27 # 第一个公众号的appid
-        secret: 9c5d283c21fcc2b02c5260b371641c5e # 公众号的appsecret
+      - appId: wx5fb2*****fd27 # 第一个公众号的appid
+        secret: 9c5d2***2c5260b371641c5e # 公众号的appsecret
         token: WnbVm6GTQj4BPmLliSday4K # 接口配置里的Token值
-        aesKey: UjBF0GHnIfsoBCCW5UuHBI8jALVX9kfb9KyEyZE0TUx # 接口配置里的EncodingAESKey值
-      - appId: wx5dd60c0ef238bb2e # 第二个公众号的appid，以下同上
-        secret: 397971edeb8961a51b1a4d02c4935ba1
+        aesKey: UjBF0GHnIfs***BI8jALVX9kfb9KyEyZE0TUx # 接口配置里的EncodingAESKey值
+      - appId: wx5dd60*****b2e # 第二个公众号的appid，以下同上
+        secret: 397971edeb****4d02c4935ba1
         token: WnbVm6GTQj4BPmLliSday4K
-        aesKey: UjBF0GHnIfsoBCCW5UuHBI8jALVX9kfb9KyEyZE0TUx
+        aesKey: UjBF0GHnIf****I8jALVX9kfb9KyEyZE0TUx
